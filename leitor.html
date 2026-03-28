@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Gerenciador de Documentos SCONT - Sistema de Armazenamento e Organização">
+    <title>Gerenciador de Documentos - SCONT</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        /* ===== RESET E VARIÁVEIS ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-primary: #1e3a8a;
+            --color-primary-light: #3b82f6;
+            --color-primary-dark: #1e40af;
+            --color-secondary: #0f766e;
+            --color-success: #059669;
+            --color-warning: #d97706;
+            --color-danger: #dc2626;
+            --color-info: #0284c7;
+            
+            --color-gray-50: #f9fafb;
+            --color-gray-100: #f3f4f6;
+            --color-gray-200: #e5e7eb;
+            --color-gray-300: #d1d5db;
+            --color-gray-400: #9ca3af;
+            --color-gray-500: #6b7280;
+            --color-gray-600: #4b5563;
+            --color-gray-700: #374151;
+            --color-gray-800: #1f2937;
+            --color-gray-900: #111827;
+            
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            --spacing-2xl: 48px;
+            
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-fast: all 0.15s ease;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--color-gray-800);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+            flex-wrap: wrap;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .header-logo {
+            max-width: 120px;
+            height: auto;
+        }
+
+        .header-title {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .header-title h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--color-gray-900);
+        }
+
+        .header-title p {
+            font-size: 12px;
+            color: var(--color-gray-500);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--color-gray-50);
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            color: var(--color-gray-600);
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--color-gray-400);
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: var(--color-success);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ===== CONFIGURAÇÃO ===== */
+        .config-section {
+            background: var(--color-gray-50);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--color-gray-200);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .config-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--color-gray-700);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .config-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-gray-700);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--color-gray-300);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            transition: var(--transition-fast);
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--color-primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: var(--color-gray-50);
+        }
+
+        .config-actions {
+            display: flex;
+            gap: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+
+        /* ===== BOTÕES ===== */
+        .btn {
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: var(--transition-fast);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--color-gray-200);
+            color: var(--color-gray-800);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-gray-300);
+        }
+
+        .btn-danger {
+            background: var(--color-danger);
+            color: white;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            font-size: 11px;
+        }
+
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+
+        .btn-success {
+            background: var(--color-success);
+            color: white;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            font-size: 11px;
+        }
+
+        .btn-success:hover {
+            background: #047857;
+        }
+
+        .btn-back {
+            background: var(--color-primary-light);
+            color: white;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .btn-back:hover {
+            background: var(--color-primary-dark);
+        }
+
+        /* ===== ALERTS ===== */
+        .alert {
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-lg);
+            display: none;
+            border-left: 4px solid;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-color: var(--color-success);
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #7f1d1d;
+            border-color: var(--color-danger);
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #0c2d6b;
+            border-color: var(--color-info);
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            color: #78350f;
+            border-color: var(--color-warning);
+        }
+
+        /* ===== STATS ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: white;
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border-left: 4px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        /* ===== CONTENT ===== */
+        .content {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            padding: var(--spacing-xl);
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-xl);
+            padding-bottom: var(--spacing-lg);
+            border-bottom: 2px solid var(--color-gray-200);
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+        }
+
+        .content-header h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--color-gray-900);
+        }
+
+        /* ===== BREADCRUMB ===== */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            padding: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-gray-50) 0%, var(--color-gray-100) 100%);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--color-gray-200);
+            flex-wrap: wrap;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+
+        .breadcrumb-item {
+            color: var(--color-primary-light);
+            cursor: pointer;
+            font-weight: 600;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-sm);
+            transition: var(--transition-fast);
+            white-space: nowrap;
+        }
+
+        .breadcrumb-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--color-primary-dark);
+        }
+
+        .breadcrumb-separator {
+            color: var(--color-gray-400);
+            font-weight: 300;
+        }
+
+        /* ===== ITEMS LIST ===== */
+        .items-list {
+            display: grid;
+            gap: var(--spacing-md);
+        }
+
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md);
+            background: var(--color-gray-50);
+            border: 1px solid var(--color-gray-200);
+            border-radius: var(--radius-md);
+            transition: var(--transition-fast);
+        }
+
+        .item:hover {
+            border-color: var(--color-primary-light);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, rgba(59, 130, 246, 0.05) 100%);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .item-folder {
+            cursor: pointer;
+        }
+
+        .item-folder:hover {
+            transform: translateX(4px);
+        }
+
+        .item-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            min-width: 0;
+        }
+
+        .item-icon {
+            font-size: 28px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .item-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .item-name {
+            color: var(--color-gray-900);
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+            word-break: break-word;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            font-size: 14px;
+        }
+
+        .item-name:hover {
+            color: var(--color-primary-light);
+        }
+
+        .item-meta {
+            color: var(--color-gray-500);
+            font-size: 12px;
+            display: flex;
+            gap: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-left: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+
+        /* ===== LOADING ===== */
+        .loading {
+            text-align: center;
+            padding: var(--spacing-2xl);
+            color: var(--color-gray-500);
+        }
+
+        .spinner {
+            border: 4px solid var(--color-gray-200);
+            border-top: 4px solid var(--color-primary-light);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto var(--spacing-lg);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-2xl) var(--spacing-lg);
+            color: var(--color-gray-500);
+        }
+
+        .empty-state-icon {
+            font-size: 80px;
+            margin-bottom: var(--spacing-lg);
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 15px;
+            margin-bottom: var(--spacing-md);
+        }
+
+        /* ===== MODAL ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-lg);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: var(--spacing-xl);
+            border-radius: var(--radius-lg);
+            max-width: 700px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: var(--shadow-xl);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: var(--spacing-lg);
+            right: var(--spacing-lg);
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--color-gray-400);
+            transition: var(--transition-fast);
+        }
+
+        .modal-close:hover {
+            color: var(--color-gray-900);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-gray-900);
+            margin-bottom: var(--spacing-lg);
+            word-break: break-word;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-lg);
+            border: 1px solid var(--color-gray-200);
+        }
+
+        .preview-text {
+            background: var(--color-gray-50);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin-bottom: var(--spacing-lg);
+            border: 1px solid var(--color-gray-200);
+            line-height: 1.5;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .container {
+                padding: var(--spacing-md);
+            }
+
+            .header {
+                padding: var(--spacing-lg);
+            }
+
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .content {
+                padding: var(--spacing-lg);
+            }
+
+            .config-form {
+                grid-template-columns: 1fr;
+            }
+
+            .item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .item-actions {
+                margin-left: 0;
+                margin-top: var(--spacing-md);
+                width: 100%;
+            }
+
+            .item-actions button {
+                flex: 1;
+            }
+
+            .breadcrumb {
+                font-size: 12px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                max-width: 95%;
+                padding: var(--spacing-lg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-content">
+                <div class="header-brand">
+                    <img src="https://scontdf.com.br/wp-content/uploads/2019/11/logo-scont-1024x363.png" alt="Logo SCONT" class="header-logo">
+                    <div class="header-title">
+                        <h1>Gerenciador de Documentos</h1>
+                        <p>Sistema de Armazenamento e Organização</p>
+                    </div>
+                </div>
+                <div class="header-status">
+                    <div class="status-indicator" id="statusIndicator"></div>
+                    <span id="statusText">Desconectado</span>
+                </div>
+            </div>
+
+            <!-- Configuração -->
+            <div class="config-section">
+                <div class="config-title">⚙️ Configuração de Conexão</div>
+                <div class="config-form">
+                    <div class="form-group">
+                        <label>URL Supabase</label>
+                        <input type="text" id="supabaseUrl" placeholder="https://seu-projeto.supabase.co" value="https://graxaoomeffhsazuzkvg.supabase.co">
+                    </div>
+                    <div class="form-group">
+                        <label>Chave de Acesso</label>
+                        <input type="password" id="supabaseKey" placeholder="sua-chave-publica">
+                    </div>
+                    <div class="form-group">
+                        <label>Nome do Bucket</label>
+                        <input type="text" id="bucketName" placeholder="documentos" value="documentos">
+                    </div>
+                </div>
+                <div class="config-actions">
+                    <button class="btn btn-primary" onclick="app.connect()">
+                        🔗 Conectar
+                    </button>
+                    <button class="btn btn-secondary" onclick="app.disconnect()">
+                        🔌 Desconectar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert -->
+        <div id="alert" class="alert"></div>
+
+        <!-- Stats -->
+        <div class="stats-grid" id="stats" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-value" id="totalItems">0</div>
+                <div class="stat-label">Itens Totais</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalSize">0 MB</div>
+                <div class="stat-label">Tamanho Total</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="currentPath">-</div>
+                <div class="stat-label">Pasta Atual</div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="content-header">
+                <h2>📂 Navegador de Arquivos</h2>
+            </div>
+
+            <!-- Breadcrumb -->
+            <div class="breadcrumb" id="breadcrumb">
+                <span class="breadcrumb-item" onclick="app.navigateTo('')">📁 Raiz</span>
+            </div>
+
+            <!-- Botão Voltar -->
+            <button class="btn btn-back" id="backBtn" onclick="app.goBack()" style="display: none;">
+                ← Voltar
+            </button>
+
+            <!-- Items -->
+            <div id="itemsContainer">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📁</div>
+                    <p>Preencha as credenciais e clique em "Conectar"</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="app.closePreview()">✕</button>
+            <h3 class="modal-title" id="previewTitle"></h3>
+            <div id="previewContent"></div>
+            <div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-xl); flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="app.downloadFile()">📥 Baixar</button>
+                <button class="btn btn-danger" onclick="app.deleteFile()">🗑️ Deletar</button>
+                <button class="btn btn-secondary" onclick="app.closePreview()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== APLICAÇÃO PRINCIPAL =====
+        const app = {
+            // Estado
+            state: {
+                supabaseClient: null,
+                allItems: [],
+                currentPath: '',
+                bucketName: '',
+                pathHistory: [],
+                currentPreviewFile: null,
+                isConnected: false,
+                isLoading: false,
+            },
+
+            // ===== INICIALIZAÇÃO =====
+            init() {
+                console.log('🚀 Inicializando aplicação...');
+                this.setupEventListeners();
+            },
+
+            setupEventListeners() {
+                // Permitir Enter para conectar
+                document.getElementById('supabaseKey').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.connect();
+                });
+            },
+
+            // ===== CONEXÃO =====
+            async connect() {
+                const url = document.getElementById('supabaseUrl').value;
+                const key = document.getElementById('supabaseKey').value;
+                this.state.bucketName = document.getElementById('bucketName').value;
+
+                if (!url || !key || !this.state.bucketName) {
+                    this.showAlert('Por favor, preencha todos os campos', 'error');
+                    return;
+                }
+
+                try {
+                    this.setLoading(true);
+                    this.showAlert('Conectando ao Supabase...', 'info');
+
+                    this.state.supabaseClient = window.supabase.createClient(url, key);
+
+                    // Testar conexão
+                    const { data, error } = await this.state.supabaseClient.storage
+                        .from(this.state.bucketName)
+                        .list('', { limit: 10000 });
+
+                    if (error) throw new Error(error.message);
+
+                    this.state.allItems = data || [];
+                    this.state.currentPath = '';
+                    this.state.pathHistory = [];
+                    this.state.isConnected = true;
+
+                    this.updateStatus(true);
+                    this.showAlert(`✅ Conectado! ${this.state.allItems.length} itens encontrados`, 'success');
+                    this.render();
+
+                } catch (error) {
+                    this.state.isConnected = false;
+                    this.updateStatus(false);
+                    this.showAlert(`❌ Erro: ${error.message}`, 'error');
+                    console.error('Erro de conexão:', error);
+                } finally {
+                    this.setLoading(false);
+                }
+            },
+
+            disconnect() {
+                this.state.supabaseClient = null;
+                this.state.allItems = [];
+                this.state.currentPath = '';
+                this.state.isConnected = false;
+                this.updateStatus(false);
+                this.showAlert('Desconectado do Supabase', 'info');
+                this.render();
+            },
+
+            updateStatus(connected) {
+                const indicator = document.getElementById('statusIndicator');
+                const text = document.getElementById('statusText');
+                
+                if (connected) {
+                    indicator.classList.add('connected');
+                    text.textContent = 'Conectado';
+                } else {
+                    indicator.classList.remove('connected');
+                    text.textContent = 'Desconectado';
+                }
+            },
+
+            // ===== RENDERIZAÇÃO =====
+            render() {
+                if (!this.state.isConnected) {
+                    this.renderEmpty('Desconectado');
+                    document.getElementById('stats').style.display = 'none';
+                    return;
+                }
+
+                this.renderItems();
+                this.updateStats();
+            },
+
+            renderItems() {
+                const container = document.getElementById('itemsContainer');
+                const backBtn = document.getElementById('backBtn');
+
+                // Separar pastas e arquivos
+                const folders = new Set();
+                const files = [];
+
+                this.state.allItems.forEach(item => {
+                    const fullName = item.name;
+                    
+                    if (!this.state.currentPath) {
+                        const parts = fullName.split('/');
+                        if (parts.length === 1) {
+                            files.push({
+                                name: fullName,
+                                fullPath: fullName,
+                                size: item.metadata?.size || 0,
+                                updated: item.updated_at
+                            });
+                        } else if (parts.length > 1) {
+                            folders.add(parts[0]);
+                        }
+                    } else {
+                        if (fullName.startsWith(this.state.currentPath + '/')) {
+                            const afterPath = fullName.substring(this.state.currentPath.length + 1);
+                            const parts = afterPath.split('/');
+                            
+                            if (parts.length === 1 && parts[0]) {
+                                files.push({
+                                    name: parts[0],
+                                    fullPath: fullName,
+                                    size: item.metadata?.size || 0,
+                                    updated: item.updated_at
+                                });
+                            } else if (parts.length > 1) {
+                                folders.add(parts[0]);
+                            }
+                        }
+                    }
+                });
+
+                if (folders.size === 0 && files.length === 0) {
+                    this.renderEmpty('Nenhum item encontrado nesta pasta');
+                    backBtn.style.display = this.state.currentPath ? 'block' : 'none';
+                    return;
+                }
+
+                let html = '<div class="items-list">';
+
+                // Renderizar pastas
+                const sortedFolders = Array.from(folders).sort();
+                sortedFolders.forEach(folderName => {
+                    const newPath = this.state.currentPath ? this.state.currentPath + '/' + folderName : folderName;
+                    const itemsInFolder = this.state.allItems.filter(item => 
+                        item.name.startsWith(newPath + '/')
+                    ).length;
+
+                    html += `
+                        <div class="item item-folder" onclick="app.navigateTo('${newPath}')">
+                            <div class="item-info">
+                                <div class="item-icon">📁</div>
+                                <div class="item-details">
+                                    <div class="item-name">${this.escapeHtml(folderName)}</div>
+                                    <div class="item-meta">
+                                        <span>Pasta</span>
+                                        <span>${itemsInFolder} itens</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Renderizar arquivos
+                files.forEach(file => {
+                    const icon = this.getFileIcon(file.name);
+                    const size = this.formatFileSize(file.size);
+                    const date = file.updated ? new Date(file.updated).toLocaleDateString('pt-BR') : 'N/A';
+
+                    html += `
+                        <div class="item">
+                            <div class="item-info">
+                                <div class="item-icon">${icon}</div>
+                                <div class="item-details">
+                                    <div class="item-name" onclick="app.previewFile('${this.escapeHtml(file.fullPath)}', '${this.escapeHtml(file.name)}')">
+                                        ${this.escapeHtml(file.name)}
+                                    </div>
+                                    <div class="item-meta">
+                                        <span>${size}</span>
+                                        <span>${date}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="item-actions">
+                                <button class="btn btn-success" onclick="event.stopPropagation(); app.previewFile('${this.escapeHtml(file.fullPath)}', '${this.escapeHtml(file.name)}')">👁️ Ver</button>
+                                <button class="btn btn-primary" onclick="event.stopPropagation(); app.downloadFileByPath('${this.escapeHtml(file.fullPath)}', '${this.escapeHtml(file.name)}')">📥 Baixar</button>
+                                <button class="btn btn-danger" onclick="event.stopPropagation(); app.deleteFileByPath('${this.escapeHtml(file.fullPath)}')">🗑️ Deletar</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+                container.innerHTML = html;
+
+                backBtn.style.display = this.state.currentPath ? 'block' : 'none';
+                this.updateBreadcrumb();
+            },
+
+            renderEmpty(message) {
+                const container = document.getElementById('itemsContainer');
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>${message}</p>
+                    </div>
+                `;
+            },
+
+            updateBreadcrumb() {
+                const breadcrumb = document.getElementById('breadcrumb');
+                let html = '<span class="breadcrumb-item" onclick="app.navigateTo(\'\')">📁 Raiz</span>';
+
+                if (this.state.currentPath) {
+                    const parts = this.state.currentPath.split('/');
+                    let accumulated = '';
+
+                    parts.forEach((part, index) => {
+                        accumulated += (accumulated ? '/' : '') + part;
+                        html += '<span class="breadcrumb-separator">/</span>';
+                        html += `<span class="breadcrumb-item" onclick="app.navigateTo('${accumulated}')">${this.escapeHtml(part)}</span>`;
+                    });
+                }
+
+                breadcrumb.innerHTML = html;
+            },
+
+            updateStats() {
+                const totalSize = this.state.allItems.reduce((sum, item) => sum + (item.metadata?.size || 0), 0);
+
+                document.getElementById('totalItems').textContent = this.state.allItems.length;
+                document.getElementById('totalSize').textContent = this.formatFileSize(totalSize);
+                document.getElementById('currentPath').textContent = this.state.currentPath || 'Raiz';
+                document.getElementById('stats').style.display = 'grid';
+            },
+
+            // ===== NAVEGAÇÃO =====
+            navigateTo(path) {
+                if (this.state.currentPath) {
+                    this.state.pathHistory.push(this.state.currentPath);
+                }
+                this.state.currentPath = path;
+                this.renderItems();
+                this.updateStats();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            },
+
+            goBack() {
+                if (this.state.pathHistory.length > 0) {
+                    this.state.currentPath = this.state.pathHistory.pop();
+                } else {
+                    this.state.currentPath = '';
+                }
+                this.renderItems();
+                this.updateStats();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            },
+
+            // ===== PREVIEW =====
+            async previewFile(filePath, fileName) {
+                try {
+                    this.state.currentPreviewFile = { filePath, fileName };
+                    const modal = document.getElementById('previewModal');
+                    const previewContent = document.getElementById('previewContent');
+                    const previewTitle = document.getElementById('previewTitle');
+
+                    previewTitle.textContent = fileName;
+                    previewContent.innerHTML = '<div class="loading"><div class="spinner"></div><p>Carregando...</p></div>';
+                    modal.classList.add('active');
+
+                    const { data, error } = await this.state.supabaseClient.storage
+                        .from(this.state.bucketName)
+                        .createSignedUrl(filePath, 3600);
+
+                    if (error) throw error;
+
+                    const url = data.signedUrl;
+                    const ext = fileName.split('.').pop().toLowerCase();
+
+                    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                        previewContent.innerHTML = `<img src="${url}" class="preview-image" alt="${this.escapeHtml(fileName)}">`;
+                    } else if (['pdf'].includes(ext)) {
+                        previewContent.innerHTML = `
+                            <iframe src="${url}" style="width: 100%; height: 500px; border: 1px solid #e5e7eb; border-radius: 8px;"></iframe>
+                        `;
+                    } else if (['txt', 'json', 'csv', 'xml', 'html', 'css', 'js'].includes(ext)) {
+                        const response = await fetch(url);
+                        const text = await response.text();
+                        previewContent.innerHTML = `<div class="preview-text">${this.escapeHtml(text)}</div>`;
+                    } else {
+                        previewContent.innerHTML = `
+                            <p style="margin-bottom: 16px;">Tipo de arquivo não suportado para visualização</p>
+                            <a href="${url}" target="_blank" class="btn btn-primary">Abrir em nova aba</a>
+                        `;
+                    }
+                } catch (error) {
+                    document.getElementById('previewContent').innerHTML = `<p style="color: #dc2626;">Erro: ${error.message}</p>`;
+                }
+            },
+
+            closePreview() {
+                document.getElementById('previewModal').classList.remove('active');
+                this.state.currentPreviewFile = null;
+            },
+
+            // ===== DOWNLOAD =====
+            async downloadFileByPath(filePath, fileName) {
+                try {
+                    const { data, error } = await this.state.supabaseClient.storage
+                        .from(this.state.bucketName)
+                        .createSignedUrl(filePath, 3600);
+
+                    if (error) throw error;
+
+                    const a = document.createElement('a');
+                    a.href = data.signedUrl;
+                    a.download = fileName;
+                    a.click();
+
+                    this.showAlert('✅ Download iniciado!', 'success');
+                } catch (error) {
+                    this.showAlert(`❌ Erro ao baixar: ${error.message}`, 'error');
+                }
+            },
+
+            async downloadFile() {
+                if (!this.state.currentPreviewFile) return;
+                await this.downloadFileByPath(this.state.currentPreviewFile.filePath, this.state.currentPreviewFile.fileName);
+            },
+
+            // ===== DELETE =====
+            async deleteFileByPath(filePath) {
+                if (!confirm('Tem certeza que deseja deletar este arquivo?')) return;
+
+                try {
+                    const { error } = await this.state.supabaseClient.storage
+                        .from(this.state.bucketName)
+                        .remove([filePath]);
+
+                    if (error) throw error;
+
+                    this.showAlert('✅ Arquivo deletado com sucesso!', 'success');
+                    this.closePreview();
+                    await this.connect();
+                } catch (error) {
+                    this.showAlert(`❌ Erro ao deletar: ${error.message}`, 'error');
+                }
+            },
+
+            async deleteFile() {
+                if (!this.state.currentPreviewFile) return;
+                await this.deleteFileByPath(this.state.currentPreviewFile.filePath);
+            },
+
+            // ===== UTILITÁRIOS =====
+            getFileIcon(fileName) {
+                const ext = fileName.split('.').pop().toLowerCase();
+                const icons = {
+                    pdf: '📄', doc: '📋', docx: '📋', xls: '📊', xlsx: '📊',
+                    ppt: '🎯', pptx: '🎯', jpg: '🖼️', jpeg: '🖼️', png: '🖼️',
+                    gif: '🖼️', mp4: '🎬', mp3: '🎵', zip: '📦', rar: '📦',
+                    txt: '📝', json: '⚙️', csv: '📈', html: '🌐', css: '🎨', js: '⚡'
+                };
+                return icons[ext] || '📁';
+            },
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+            },
+
+            showAlert(message, type) {
+                const alert = document.getElementById('alert');
+                alert.textContent = message;
+                alert.className = `alert show alert-${type}`;
+
+                setTimeout(() => {
+                    alert.classList.remove('show');
+                }, 5000);
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            setLoading(loading) {
+                this.state.isLoading = loading;
+                const btn = document.querySelector('.btn-primary');
+                if (btn) {
+                    btn.disabled = loading;
+                    btn.textContent = loading ? '⏳ Conectando...' : '🔗 Conectar';
+                }
+            }
+        };
+
+        // ===== INICIAR APLICAÇÃO =====
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+    </script>
+</body>
+</html>
