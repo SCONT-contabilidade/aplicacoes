@@ -1006,16 +1006,37 @@
 
 <script>
     // ===== CONFIGURAÇÃO SUPABASE =====
-    // SUBSTITUA PELAS SUAS CHAVES DO SUPABASE
-    const SUPABASE_URL = 'https://supabase.com/dashboard/project/graxaoomeffhsazuzkvg';
-    const SUPABASE_ANON_KEY = 'sb_publishable_gf9wBN-NLqwLP3fX_ispWw_z9dLcWJC';
+    // COPIE EXATAMENTE DO SUPABASE SETTINGS > API
+    const SUPABASE_URL = 'https://graxaoomeffhsazuzkvg.supabase.co'; // Mude aqui
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyYXhhb29tZWZmaHNhenV6a3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTUxMDUsImV4cCI6MjA5MDI5MTEwNX0.ZpbVoNVS4momTyf7NME4mcYuI4oCQUvNFSDbORCHktI'; // Mude aqui
     
-    // Criar cliente Supabase apenas uma vez
+    // Validar configuração
+    if (!SUPABASE_URL || SUPABASE_URL.includes('dashboard')) {
+        console.error('❌ ERRO: SUPABASE_URL está incorreta!');
+        console.error('Use a URL da API, não do dashboard');
+        console.error('Exemplo correto: https://xxxxx.supabase.co');
+        alert('Erro de configuração: URL do Supabase incorreta. Verifique o console.');
+    }
+    
+    if (!SUPABASE_ANON_KEY || SUPABASE_ANON_KEY === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyYXhhb29tZWZmaHNhenV6a3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTUxMDUsImV4cCI6MjA5MDI5MTEwNX0.ZpbVoNVS4momTyf7NME4mcYuI4oCQUvNFSDbORCHktI') {
+        console.error('❌ ERRO: SUPABASE_ANON_KEY não foi configurada!');
+        alert('Erro de configuração: Chave do Supabase não configurada.');
+    }
+    
+    console.log('✅ Supabase URL:', SUPABASE_URL);
+    console.log('✅ Supabase Key:', SUPABASE_ANON_KEY.substring(0, 20) + '...');
+    
     let supabaseClient = null;
     
     function getSupabaseClient() {
         if (!supabaseClient) {
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            try {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('✅ Cliente Supabase criado com sucesso');
+            } catch (error) {
+                console.error('❌ Erro ao criar cliente Supabase:', error);
+                alert('Erro ao conectar com Supabase. Verifique as chaves.');
+            }
         }
         return supabaseClient;
     }
