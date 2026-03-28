@@ -1000,7 +1000,7 @@
     // ===== CONFIGURAÇÃO SUPABASE =====
     // COPIE EXATAMENTE DO SUPABASE SETTINGS > API
     const SUPABASE_URL = 'https://graxaoomeffhsazuzkvg.supabase.co'; // Mude aqui
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyYXhhb29tZWZmaHNhenV6a3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTUxMDUsImV4cCI6MjA5MDI5MTEwNX0.ZpbVoNVS4momTyf7NME4mcYuI4oCQUvNFSDbORCHktI'; // Mude aqui
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyYXhhb29tZWZmaHNhenV6a3ZnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDcxNTEwNSwiZXhwIjoyMDkwMjkxMTA1fQ.CNxTiWH0gTAXhRtM1xvUp31YG1SeFc8sDtC4KlDOY40'; // Mude aqui
     
     // Validar configuração
     if (!SUPABASE_URL || SUPABASE_URL.includes('dashboard')) {
@@ -1010,7 +1010,7 @@
         alert('Erro de configuração: URL do Supabase incorreta. Verifique o console.');
     }
     
-    if (!SUPABASE_ANON_KEY || SUPABASE_ANON_KEY === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyYXhhb29tZWZmaHNhenV6a3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTUxMDUsImV4cCI6MjA5MDI5MTEwNX0.ZpbVoNVS4momTyf7NME4mcYuI4oCQUvNFSDbORCHktI') {
+    if (!SUPABASE_ANON_KEY || SUPABASE_ANON_KEY === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyYXhhb29tZWZmaHNhenV6a3ZnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDcxNTEwNSwiZXhwIjoyMDkwMjkxMTA1fQ.CNxTiWH0gTAXhRtM1xvUp31YG1SeFc8sDtC4KlDOY40') {
         console.error('❌ ERRO: SUPABASE_ANON_KEY não foi configurada!');
         alert('Erro de configuração: Chave do Supabase não configurada.');
     }
