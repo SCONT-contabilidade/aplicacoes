@@ -980,7 +980,139 @@
         // ===== CONFIGURAÇÃO SUPABASE =====
         const SUPABASE_URL = 'https://graxaoomeffhsazuzkvg.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyYXhhb29tZWZmaHNhenV6a3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTUxMDUsImV4cCI6MjA5MDI5MTEwNX0.ZpbVoNVS4momTyf7NME4mcYuI4oCQUvNFSDbORCHktI';
-        
+        // ===== CONFIGURAÇÃO DE ESTRUTURA DE PASTAS =====
+const BUCKET_CONFIG = {
+  // Escolha a estrutura desejada:
+  // Opção 1: Simples por empresa
+  // pattern: 'documentos/{empresa}/{arquivo}',
+  
+  // Opção 2: Por empresa e tipo (RECOMENDADO)
+  pattern: 'documentos/{empresa}/{tipo}/{arquivo}',
+  
+  // Opção 3: Por empresa, tipo e data
+  // pattern: 'documentos/{empresa}/{tipo}/{data}/{arquivo}',
+  
+  // Opção 4: Por data e empresa
+  // pattern: 'documentos/{ano}/{mes}/{dia}/{empresa}/{arquivo}',
+  
+  // Opção 5: Totalmente customizada
+  // pattern: 'documentos/{tipo}/{ano}/{mes}/{empresa}/{arquivo}',
+};
+
+// ===== SANITIZAR NOME DO ARQUIVO =====
+function sanitizarNomeArquivo(nome) {
+  nome = nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  nome = nome.replace(/[^a-zA-Z0-9._-]/g, '_');
+  nome = nome.replace(/_+/g, '_');
+  nome = nome.replace(/^_+|_+$/g, '');
+  nome = nome.toLowerCase();
+  return nome;
+}
+
+// ===== GERAR CAMINHO COMPLETO =====
+function gerarCaminhoArquivo(nomeEmpresa, tipoDocumento, nomeArquivo) {
+  const agora = new Date();
+  
+  // Preparar variáveis
+  const variaveis = {
+    '{empresa}': sanitizarNomeArquivo(nomeEmpresa).substring(0, 30),
+    '{tipo}': tipoDocumento,
+    '{data}': agora.toISOString().split('T')[0],
+    '{ano}': agora.getFullYear(),
+    '{mes}': String(agora.getMonth() + 1).padStart(2, '0'),
+    '{dia}': String(agora.getDate()).padStart(2, '0'),
+    '{hora}': agora.toTimeString().split(' ')[0].replace(/:/g, '-'),
+    '{arquivo}': sanitizarNomeArquivo(nomeArquivo),
+  };
+  
+  // Substituir variáveis no padrão
+  let caminho = BUCKET_CONFIG.pattern;
+  Object.entries(variaveis).forEach(([chave, valor]) => {
+    caminho = caminho.replace(chave, valor);
+  });
+  
+  console.log('📁 Caminho gerado:', caminho);
+  return caminho;
+}
+
+// ===== UPLOAD COM NOVO CAMINHO =====
+async function uploadArquivo(arquivo, formularioId, socioId, nomeArquivo, tipo) {
+  try {
+    const supabase = getSupabaseClient();
+
+    // Gerar caminho com a nova estrutura
+    const caminhoArquivo = gerarCaminhoArquivo(formData.nomeEmpresa, tipo, nomeArquivo);
+    
+    // Adicionar extensão
+    let extensao = '';
+    if (tipo === 'formulario') {
+      extensao = '.pdf';
+    } else if (arquivo.type === 'application/pdf') {
+      extensao = '.pdf';
+    } else if (arquivo.type === 'image/jpeg') {
+      extensao = '.jpg';
+    } else if (arquivo.type === 'image/png') {
+      extensao = '.png';
+    }
+
+    const caminhoCompleto = caminhoArquivo + extensao;
+
+    console.log('📤 Fazendo upload para:', caminhoCompleto);
+
+    // Upload
+    const { data, error } = await supabase.storage
+      .from('documentos')
+      .upload(caminhoCompleto, arquivo);
+
+    if (error) {
+      console.error('❌ Erro:', error);
+      throw error;
+    }
+
+    console.log('✅ Arquivo enviado');
+
+    // Obter URL pública
+    const { data: publicUrl } = supabase.storage
+      .from('documentos')
+      .getPublicUrl(caminhoCompleto);
+
+    // Registrar no banco
+    const { error: uploadError } = await supabase
+      .from('uploads')
+      .insert([{
+        formulario_id: formularioId,
+        socio_id: socioId,
+        arquivo_nome: caminhoCompleto.split('/').pop(),
+        arquivo_tipo: tipo,
+        arquivo_tamanho: arquivo.size,
+        arquivo_url: publicUrl.publicUrl,
+        arquivo_caminho: caminhoCompleto, // Salvar caminho completo
+      }]);
+
+    if (uploadError) {
+      console.error('❌ Erro ao registrar:', uploadError);
+      throw uploadError;
+    }
+
+    console.log('✅ Registrado no banco');
+
+    // Se for PDF, baixar
+    if (tipo === 'formulario') {
+      const url = URL.createObjectURL(arquivo);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = caminhoCompleto.split('/').pop();
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+  } catch (error) {
+    console.error('❌ Erro no upload:', error);
+    throw error;
+  }
+}
         let supabaseClient = null;
         
         function getSupabaseClient() {
