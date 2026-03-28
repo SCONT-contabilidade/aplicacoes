@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCONT - Soluções Contábeis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --primary-dark: #1e40af;
+            --secondary: #0f766e;
+            --success: #059669;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-900: #111827;
+            --border-radius: 8px;
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        html {
+            font-size: 16px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--gray-900);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            padding: 48px 32px;
+            margin-bottom: 48px;
+            text-align: center;
+            border-top: 4px solid var(--primary);
+        }
+
+        .logo {
+            max-width: 200px;
+            height: auto;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 12px;
+        }
+
+        .header p {
+            font-size: 18px;
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+
+        .header-subtitle {
+            font-size: 14px;
+            color: var(--primary-light);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ===== CARDS GRID ===== */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 32px;
+            margin-bottom: 48px;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            padding: 40px 32px;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-top: 4px solid transparent;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card-formulario {
+            border-top-color: var(--primary);
+        }
+
+        .card-formulario:hover {
+            border-top-color: var(--primary-dark);
+        }
+
+        .card-leitor {
+            border-top-color: var(--secondary);
+        }
+
+        .card-leitor:hover {
+            border-top-color: #0d5a57;
+        }
+
+        .card-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 16px;
+        }
+
+        .card p {
+            font-size: 15px;
+            color: #6b7280;
+            margin-bottom: 28px;
+            line-height: 1.8;
+        }
+
+        .card-features {
+            text-align: left;
+            background: var(--gray-50);
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 28px;
+            font-size: 13px;
+        }
+
+        .card-features li {
+            list-style: none;
+            padding: 8px 0;
+            color: #4b5563;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-features li:before {
+            content: "✓";
+            color: var(--success);
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--secondary) 0%, #0d5a57 100%);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            padding: 32px;
+            text-align: center;
+            border-top: 2px solid var(--gray-100);
+        }
+
+        .footer p {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .footer-links a {
+            color: var(--primary-light);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary-dark);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            .header {
+                padding: 32px 20px;
+                margin-bottom: 32px;
+            }
+
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .header p {
+                font-size: 16px;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+
+            .card {
+                padding: 32px 24px;
+            }
+
+            .card h2 {
+                font-size: 20px;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            animation: fadeIn 0.6s ease;
+        }
+
+        .card {
+            animation: fadeIn 0.6s ease;
+            animation-fill-mode: both;
+        }
+
+        .card:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .card:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <img src="https://scontdf.com.br/wp-content/uploads/2019/11/logo-scont-1024x363.png" alt="Logo SCONT" class="logo">
+            <p class="header-subtitle">Soluções Contábeis</p>
+            <h1>Gerenciamento de Documentos</h1>
+            <p>Sistema integrado para formulários e gerenciamento de arquivos</p>
+        </div>
+
+        <!-- Cards Grid -->
+        <div class="cards-grid">
+            <!-- Card Formulário -->
+            <div class="card card-formulario">
+                <div class="card-icon">📋</div>
+                <h2>Formulário de Alteração</h2>
+                <p>Preencha e envie formulários de alteração de empresa com facilidade</p>
+                
+                <ul class="card-features">
+                    <li>Preenchimento intuitivo</li>
+                    <li>Upload de documentos</li>
+                    <li>Geração automática de PDF</li>
+                    <li>Sincronização com Supabase</li>
+                    <li>Notificação via WhatsApp</li>
+                </ul>
+
+                <a href="formulario.html" class="btn btn-primary">
+                    Acessar Formulário →
+                </a>
+            </div>
+
+            <!-- Card Leitor -->
+            <div class="card card-leitor">
+                <div class="card-icon">📂</div>
+                <h2>Leitor de Documentos</h2>
+                <p>Navegue, visualize e gerencie todos os seus documentos armazenados</p>
+                
+                <ul class="card-features">
+                    <li>Navegação de pastas</li>
+                    <li>Visualização de arquivos</li>
+                    <li>Download de documentos</li>
+                    <li>Gerenciamento de arquivos</li>
+                    <li>Interface intuitiva</li>
+                </ul>
+
+                <a href="leitor.html" class="btn btn-secondary">
+                    Acessar Leitor →
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>SCONT Soluções Contábeis LTDA</strong></p>
+            <p>Junta Comercial do Distrito Federal</p>
+            <div class="footer-links">
+                <a href="tel:+5561337255433">📞 (61) 3372-5433</a>
+                <a href="mailto:contato@scontdf.com.br">📧 contato@scontdf.com.br</a>
+                <a href="https://scontdf.com.br" target="_blank">🌐 www.scontdf.com.br</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
