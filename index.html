@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Formulário de Alteração de Empresa - SCONT</title>
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         /* ===== RESET E VARIÁVEIS ===== */
         * {
@@ -907,7 +910,15 @@
                 <button type="button" id="addSocioBtn" class="btn btn-add-socio">+ ADICIONAR SÓCIO</button>
             </section>
 
-      
+            <!-- SEÇÃO 5: INFORMAÇÕES ADICIONAIS -->
+            <section class="form-section">
+                <h2 class="section-title">INFORMAÇÕES ADICIONAIS</h2>
+                <div class="info-box">
+                    <p><strong>Honorário:</strong> R$ 600,00 (elaboração e registro do processo de alteração na JUCIS/DF, RFB, SEFAZ/DF e DF Legal). Pagamento via boleto bancário.</p>
+                    <p><strong>Taxa JUCIS:</strong> R$ 430,96 (registro da alteração junto à JUCIS).</p>
+                    <p><strong>Requisito:</strong> Será necessário ter o selo de confiabilidade emitido no portal gov.br para assinatura do processo.</p>
+                </div>
+            </section>
 
             <!-- SEÇÃO 6: CLÁUSULA DE RESPONSABILIDADE -->
             <section class="form-section">
@@ -972,147 +983,11 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <script>
         // ===== CONFIGURAÇÃO SUPABASE =====
         const SUPABASE_URL = 'https://graxaoomeffhsazuzkvg.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyYXhhb29tZWZmaHNhenV6a3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTUxMDUsImV4cCI6MjA5MDI5MTEwNX0.ZpbVoNVS4momTyf7NME4mcYuI4oCQUvNFSDbORCHktI';
-        // ===== CONFIGURAÇÃO DE ESTRUTURA DE PASTAS =====
-const BUCKET_CONFIG = {
-  // Escolha a estrutura desejada:
-  // Opção 1: Simples por empresa
-  // pattern: 'documentos/{empresa}/{arquivo}',
-  
-  // Opção 2: Por empresa e tipo (RECOMENDADO)
-  pattern: 'documentos/{empresa}/{tipo}/{arquivo}',
-  
-  // Opção 3: Por empresa, tipo e data
-  // pattern: 'documentos/{empresa}/{tipo}/{data}/{arquivo}',
-  
-  // Opção 4: Por data e empresa
-  // pattern: 'documentos/{ano}/{mes}/{dia}/{empresa}/{arquivo}',
-  
-  // Opção 5: Totalmente customizada
-  // pattern: 'documentos/{tipo}/{ano}/{mes}/{empresa}/{arquivo}',
-};
-
-// ===== SANITIZAR NOME DO ARQUIVO =====
-function sanitizarNomeArquivo(nome) {
-  nome = nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  nome = nome.replace(/[^a-zA-Z0-9._-]/g, '_');
-  nome = nome.replace(/_+/g, '_');
-  nome = nome.replace(/^_+|_+$/g, '');
-  nome = nome.toLowerCase();
-  return nome;
-}
-
-// ===== GERAR CAMINHO COMPLETO =====
-function gerarCaminhoArquivo(nomeEmpresa, tipoDocumento, nomeArquivo) {
-  const agora = new Date();
-  
-  // Preparar variáveis
-  const variaveis = {
-    '{empresa}': sanitizarNomeArquivo(nomeEmpresa).substring(0, 30),
-    '{tipo}': tipoDocumento,
-    '{data}': agora.toISOString().split('T')[0],
-    '{ano}': agora.getFullYear(),
-    '{mes}': String(agora.getMonth() + 1).padStart(2, '0'),
-    '{dia}': String(agora.getDate()).padStart(2, '0'),
-    '{hora}': agora.toTimeString().split(' ')[0].replace(/:/g, '-'),
-    '{arquivo}': sanitizarNomeArquivo(nomeArquivo),
-  };
-  
-  // Substituir variáveis no padrão
-  let caminho = BUCKET_CONFIG.pattern;
-  Object.entries(variaveis).forEach(([chave, valor]) => {
-    caminho = caminho.replace(chave, valor);
-  });
-  
-  console.log('📁 Caminho gerado:', caminho);
-  return caminho;
-}
-
-// ===== UPLOAD COM NOVO CAMINHO =====
-async function uploadArquivo(arquivo, formularioId, socioId, nomeArquivo, tipo) {
-  try {
-    const supabase = getSupabaseClient();
-
-    // Gerar caminho com a nova estrutura
-    const caminhoArquivo = gerarCaminhoArquivo(formData.nomeEmpresa, tipo, nomeArquivo);
-    
-    // Adicionar extensão
-    let extensao = '';
-    if (tipo === 'formulario') {
-      extensao = '.pdf';
-    } else if (arquivo.type === 'application/pdf') {
-      extensao = '.pdf';
-    } else if (arquivo.type === 'image/jpeg') {
-      extensao = '.jpg';
-    } else if (arquivo.type === 'image/png') {
-      extensao = '.png';
-    }
-
-    const caminhoCompleto = caminhoArquivo + extensao;
-
-    console.log('📤 Fazendo upload para:', caminhoCompleto);
-
-    // Upload
-    const { data, error } = await supabase.storage
-      .from('documentos')
-      .upload(caminhoCompleto, arquivo);
-
-    if (error) {
-      console.error('❌ Erro:', error);
-      throw error;
-    }
-
-    console.log('✅ Arquivo enviado');
-
-    // Obter URL pública
-    const { data: publicUrl } = supabase.storage
-      .from('documentos')
-      .getPublicUrl(caminhoCompleto);
-
-    // Registrar no banco
-    const { error: uploadError } = await supabase
-      .from('uploads')
-      .insert([{
-        formulario_id: formularioId,
-        socio_id: socioId,
-        arquivo_nome: caminhoCompleto.split('/').pop(),
-        arquivo_tipo: tipo,
-        arquivo_tamanho: arquivo.size,
-        arquivo_url: publicUrl.publicUrl,
-        arquivo_caminho: caminhoCompleto, // Salvar caminho completo
-      }]);
-
-    if (uploadError) {
-      console.error('❌ Erro ao registrar:', uploadError);
-      throw uploadError;
-    }
-
-    console.log('✅ Registrado no banco');
-
-    // Se for PDF, baixar
-    if (tipo === 'formulario') {
-      const url = URL.createObjectURL(arquivo);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = caminhoCompleto.split('/').pop();
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }
-
-  } catch (error) {
-    console.error('❌ Erro no upload:', error);
-    throw error;
-  }
-}
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyYXhhb29tZWZmaHNhenV6a3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTUxMDUsImV4cCI6MjA5MDI5MTEwNX0.ZpbVoNVS4momTyf7NME4mcYuI4oCQUvNFSDbORCHktI'; // Mude aqui
+        
         let supabaseClient = null;
         
         function getSupabaseClient() {
@@ -1121,6 +996,17 @@ async function uploadArquivo(arquivo, formularioId, socioId, nomeArquivo, tipo) 
             }
             return supabaseClient;
         }
+
+        // ===== CONFIGURAÇÃO DE ESTRUTURA DE PASTAS =====
+        const BUCKET_CONFIG = {
+            // Opção 2: Por empresa e tipo (ESCOLHIDA)
+            pattern: 'documentos/{empresa}/{tipo}/{arquivo}',
+            
+            // Outras opções disponíveis:
+            // pattern: 'documentos/{empresa}/{arquivo}',
+            // pattern: 'documentos/{empresa}/{tipo}/{ano}/{mes}/{arquivo}',
+            // pattern: 'documentos/{tipo}/{empresa}/{data}/{arquivo}',
+        };
 
         // ===== CONFIGURAÇÕES GLOBAIS =====
         const CONFIG = {
@@ -1374,12 +1260,47 @@ async function uploadArquivo(arquivo, formularioId, socioId, nomeArquivo, tipo) 
 
         // ===== SANITIZAR NOME DO ARQUIVO =====
         function sanitizarNomeArquivo(nome) {
+            console.log('🔧 Sanitizando:', nome);
+            
             nome = nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             nome = nome.replace(/[^a-zA-Z0-9._-]/g, '_');
             nome = nome.replace(/_+/g, '_');
             nome = nome.replace(/^_+|_+$/g, '');
             nome = nome.toLowerCase();
+            
+            console.log('✅ Sanitizado:', nome);
             return nome;
+        }
+
+        // ===== GERAR CAMINHO COMPLETO =====
+        function gerarCaminhoArquivo(nomeEmpresa, tipoDocumento, nomeArquivo) {
+            const agora = new Date();
+            
+            // Preparar variáveis
+            const variaveis = {
+                '{empresa}': sanitizarNomeArquivo(nomeEmpresa).substring(0, 30),
+                '{tipo}': tipoDocumento.toLowerCase(),
+                '{data}': agora.toISOString().split('T')[0],
+                '{ano}': agora.getFullYear(),
+                '{mes}': String(agora.getMonth() + 1).padStart(2, '0'),
+                '{dia}': String(agora.getDate()).padStart(2, '0'),
+                '{hora}': agora.toTimeString().split(' ')[0].replace(/:/g, '-'),
+                '{arquivo}': sanitizarNomeArquivo(nomeArquivo),
+            };
+            
+            console.log('📋 Variáveis disponíveis:', variaveis);
+            
+            // Substituir variáveis no padrão
+            let caminho = BUCKET_CONFIG.pattern;
+            
+            Object.entries(variaveis).forEach(function([chave, valor]) {
+                caminho = caminho.replace(chave, valor);
+            });
+            
+            console.log('📁 Padrão:', BUCKET_CONFIG.pattern);
+            console.log('📁 Caminho gerado (sem extensão):', caminho);
+            
+            return caminho;
         }
 
         // ===== GERAR NOME DO ARQUIVO =====
@@ -1484,7 +1405,7 @@ async function uploadArquivo(arquivo, formularioId, socioId, nomeArquivo, tipo) 
             });
         }
 
-        // ===== GERAR PDF DO FORMULÁRIO (CORRIGIDO) =====
+        // ===== GERAR PDF DO FORMULÁRIO =====
         async function gerarPDFFormulario() {
             return new Promise(function(resolve, reject) {
                 try {
@@ -1624,7 +1545,13 @@ async function uploadArquivo(arquivo, formularioId, socioId, nomeArquivo, tipo) 
                         }
                     }
 
-                  
+                    // INFORMAÇÕES ADICIONAIS
+                    addSection('INFORMAÇÕES ADICIONAIS');
+                    addDataLine('Honorário:', 'R$ 600,00 (elaboração e registro)');
+                    addDataLine('Taxa JUCIS:', 'R$ 430,96');
+                    addDataLine('Requisito:', 'Selo de confiabilidade do portal gov.br');
+                    yPosition += 3;
+
                     // RODAPÉ
                     if (yPosition > pageHeight - 20) {
                         doc.addPage();
@@ -1647,13 +1574,24 @@ async function uploadArquivo(arquivo, formularioId, socioId, nomeArquivo, tipo) 
             });
         }
 
-        // ===== UPLOAD DE ARQUIVOS =====
+        // ===== UPLOAD DE ARQUIVOS (VERSÃO CORRIGIDA) =====
         async function uploadArquivo(arquivo, formularioId, socioId, nomeArquivo, tipo) {
             try {
                 const supabase = getSupabaseClient();
 
-                const nomeArquivoSanitizado = sanitizarNomeArquivo(nomeArquivo);
-                
+                console.log('=== INICIANDO UPLOAD ===');
+                console.log('Tipo:', tipo);
+                console.log('Nome arquivo (entrada):', nomeArquivo);
+                console.log('Empresa:', formData.nomeEmpresa);
+
+                // PASSO 1: Gerar caminho da pasta (SEM extensão)
+                const caminhoSemExtensao = gerarCaminhoArquivo(
+                    formData.nomeEmpresa, 
+                    tipo, 
+                    nomeArquivo
+                );
+
+                // PASSO 2: Determinar extensão
                 let extensao = '';
                 if (tipo === 'formulario') {
                     extensao = '.pdf';
@@ -1667,72 +1605,78 @@ async function uploadArquivo(arquivo, formularioId, socioId, nomeArquivo, tipo) 
                     extensao = '.bin';
                 }
 
-                const nomeArquivoCompleto = nomeArquivoSanitizado + extensao;
-                
-                const formularioIdSanitizado = formularioId.replace(/[^a-zA-Z0-9-]/g, '');
-                const socioIdSanitizado = socioId ? socioId.replace(/[^a-zA-Z0-9-]/g, '') : 'formulario';
-                
-                const caminhoArquivo = formularioIdSanitizado + '/' + socioIdSanitizado + '/' + nomeArquivoCompleto;
+                // PASSO 3: Montar caminho completo COM extensão
+                const caminhoCompleto = caminhoSemExtensao + extensao;
 
-                console.log('📤 Upload:', caminhoArquivo);
+                console.log('📁 Caminho final:', caminhoCompleto);
+                console.log('📤 Iniciando upload...');
 
+                // PASSO 4: Fazer upload
                 const { data, error } = await supabase.storage
                     .from('documentos')
-                    .upload(caminhoArquivo, arquivo);
+                    .upload(caminhoCompleto, arquivo);
 
                 if (error) {
-                    console.error('❌ Erro:', error);
+                    console.error('❌ Erro ao fazer upload:', error);
                     throw error;
                 }
 
-                console.log('✅ Arquivo enviado');
+                console.log('✅ Arquivo enviado para Storage');
 
+                // PASSO 5: Obter URL pública
                 const { data: publicUrl } = supabase.storage
                     .from('documentos')
-                    .getPublicUrl(caminhoArquivo);
+                    .getPublicUrl(caminhoCompleto);
 
+                console.log('✅ URL pública gerada');
+
+                // PASSO 6: Registrar no banco de dados
                 const { error: uploadError } = await supabase
                     .from('uploads')
                     .insert([{
                         formulario_id: formularioId,
                         socio_id: socioId,
-                        arquivo_nome: nomeArquivoCompleto,
+                        arquivo_nome: caminhoCompleto.split('/').pop(),
                         arquivo_tipo: tipo,
                         arquivo_tamanho: arquivo.size,
-                        arquivo_url: publicUrl.publicUrl
+                        arquivo_url: publicUrl.publicUrl,
+                        arquivo_caminho: caminhoCompleto,
                     }]);
 
                 if (uploadError) {
-                    console.error('❌ Erro ao registrar:', uploadError);
+                    console.error('❌ Erro ao registrar no banco:', uploadError);
                     throw uploadError;
                 }
 
-                console.log('✅ Registrado no banco');
+                console.log('✅ Registrado no banco de dados');
 
+                // PASSO 7: Se for PDF do formulário, baixar na máquina do usuário
                 if (tipo === 'formulario') {
                     const url = URL.createObjectURL(arquivo);
                     const link = document.createElement('a');
                     link.href = url;
-                    link.download = nomeArquivoCompleto;
+                    link.download = caminhoCompleto.split('/').pop();
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                     URL.revokeObjectURL(url);
-                    console.log('✅ PDF baixado');
+                    console.log('✅ PDF baixado para máquina do usuário');
                 }
 
+                console.log('✅✅✅ UPLOAD CONCLUÍDO COM SUCESSO ✅✅✅');
+
             } catch (error) {
-                console.error('❌ Erro no upload:', error);
+                console.error('❌ ERRO NO UPLOAD:', error);
                 throw error;
             }
         }
 
-        // ===== SALVAR NO SUPABASE =====
+        // ===== SALVAR NO SUPABASE (CORRIGIDO) =====
         async function saveFormToSupabase() {
             try {
                 const supabase = getSupabaseClient();
                 
-                console.log('🔄 Salvando formulário...');
+                console.log('🔄 Iniciando salvamento do formulário...');
 
                 const formularioData = {
                     nome_empresa: formData.nomeEmpresa,
@@ -1767,15 +1711,15 @@ async function uploadArquivo(arquivo, formularioId, socioId, nomeArquivo, tipo) 
                     .select();
 
                 if (formularioError) {
-                    console.error('❌ Erro ao inserir:', formularioError);
+                    console.error('❌ Erro ao inserir formulário:', formularioError);
                     throw formularioError;
                 }
 
                 submissionId = formulario[0].id;
                 console.log('✅ Formulário salvo com ID:', submissionId);
 
-                // GERAR E FAZER UPLOAD DO PDF
-                console.log('📄 Gerando PDF...');
+                // GERAR E FAZER UPLOAD DO PDF DO FORMULÁRIO
+                console.log('📄 Gerando PDF do formulário...');
                 const pdfBlob = await gerarPDFFormulario();
                 const nomeFormularioPDF = gerarNomeArquivo(formData.nomeEmpresa, 'formulario');
                 
@@ -1815,10 +1759,11 @@ async function uploadArquivo(arquivo, formularioId, socioId, nomeArquivo, tipo) 
 
                         console.log('✅ Sócio #' + i + ' salvo');
 
+                        // FAZER UPLOAD DO DOCUMENTO DO SÓCIO
                         const file = uploadedDocuments['socio' + i];
                         if (file) {
                             const nomeDocumento = gerarNomeArquivo(formData.nomeEmpresa, 'documento');
-                            console.log('📤 Upload documento sócio #' + i);
+                            console.log('📤 Fazendo upload do documento do sócio #' + i + '...');
                             await uploadArquivo(file, submissionId, socio[0].id, nomeDocumento, 'documento');
                         }
                     }
@@ -1859,8 +1804,8 @@ async function uploadArquivo(arquivo, formularioId, socioId, nomeArquivo, tipo) 
                 mensagem += '📋 Sócios registrados: ' + sociosCount + '\n';
                 mensagem += '📎 Documentos anexados: Sim\n';
                 mensagem += '📄 PDF do formulário: Gerado e Baixado\n\n';
-                mensagem += 'FIco no agurado.\n\n';
-
+                mensagem += 'Entraremos em contato em breve para prosseguir com o processo.\n\n';
+                mensagem += '_SCONT Soluções Contábeis_';
 
                 const whatsappUrl = 'https://wa.me/' + CONFIG.WHATSAPP_NUMERO.replace(/\D/g, '') + '?text=' + encodeURIComponent(mensagem);
                 window.open(whatsappUrl, '_blank');
