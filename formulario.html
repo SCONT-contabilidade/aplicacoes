@@ -1267,7 +1267,7 @@
             const empresaSanitizada = sanitizarNomeArquivo(nomeEmpresa);
             
             // Estrutura: documentos/{empresa}/{tipo}/{arquivo}
-            const caminho = 'alteracao/' + empresaSanitizada + '/' + tipo + '/' + nomeArquivo;
+            const caminho = 'Alteracao/' + empresaSanitizada + '/' + tipo + '/' + nomeArquivo;
             
             console.log('📁 Caminho completo:', caminho);
             return caminho;
@@ -1554,113 +1554,102 @@
             });
         }
 
-        // ===== UPLOAD DE ARQUIVOS (VERSÃO FINAL) =====
-        async function uploadArquivo(arquivo, formularioId, socioId, nomeArquivoBase, tipo) {
-            try {
-                const supabase = getSupabaseClient();
+       // ===== UPLOAD DE ARQUIVOS (VERSÃO FINAL - SEM DOWNLOAD) =====
+async function uploadArquivo(arquivo, formularioId, socioId, nomeArquivoBase, tipo) {
+    try {
+        const supabase = getSupabaseClient();
 
-                console.log('=== INICIANDO UPLOAD ===');
-                console.log('Tipo:', tipo);
-                console.log('Nome base:', nomeArquivoBase);
-                console.log('Empresa:', formData.nomeEmpresa);
+        console.log('=== INICIANDO UPLOAD ===');
+        console.log('Tipo:', tipo);
+        console.log('Nome base:', nomeArquivoBase);
+        console.log('Empresa:', formData.nomeEmpresa);
 
-                // PASSO 1: Determinar extensão
-                let extensao = '';
-                if (tipo === 'formulario') {
-                    extensao = '.pdf';
-                } else if (arquivo.type === 'application/pdf') {
-                    extensao = '.pdf';
-                } else if (arquivo.type === 'image/jpeg') {
-                    extensao = '.jpg';
-                } else if (arquivo.type === 'image/png') {
-                    extensao = '.png';
-                } else {
-                    extensao = '.bin';
-                }
-
-                // PASSO 2: Montar nome completo COM extensão
-                const nomeArquivoCompleto = nomeArquivoBase + extensao;
-
-                // PASSO 3: Determinar tipo de pasta
-                let tipoPasta = '';
-                if (tipo === 'formulario') {
-                    tipoPasta = 'formulario';
-                } else if (tipo === 'documento') {
-                    tipoPasta = 'identificacao';
-                }
-
-                // PASSO 4: Gerar caminho completo
-                const caminhoCompleto = gerarCaminhoCompleto(formData.nomeEmpresa, tipoPasta, nomeArquivoCompleto);
-
-                console.log('📁 Caminho COMPLETO:', caminhoCompleto);
-                console.log('📤 Iniciando upload para bucket: documentos');
-
-                // PASSO 5: Fazer upload
-                const { data, error } = await supabase.storage
-                    .from('documentos')
-                    .upload(caminhoCompleto, arquivo, {
-                        cacheControl: '3600',
-                        upsert: false
-                    });
-
-                if (error) {
-                    console.error('❌ Erro ao fazer upload:', error);
-                    console.error('Caminho tentado:', caminhoCompleto);
-                    throw error;
-                }
-
-                console.log('✅ Arquivo enviado para Storage');
-
-                // PASSO 6: Obter URL pública
-                const { data: publicUrl } = supabase.storage
-                    .from('documentos')
-                    .getPublicUrl(caminhoCompleto);
-
-                console.log('✅ URL pública gerada');
-
-                // PASSO 7: Registrar no banco de dados
-                const { error: uploadError } = await supabase
-                    .from('uploads')
-                    .insert([{
-                        formulario_id: formularioId,
-                        socio_id: socioId,
-                        arquivo_nome: nomeArquivoCompleto,
-                        arquivo_tipo: tipo,
-                        arquivo_tamanho: arquivo.size,
-                        arquivo_url: publicUrl.publicUrl,
-                        arquivo_caminho: caminhoCompleto,
-                    }]);
-
-                if (uploadError) {
-                    console.error('❌ Erro ao registrar no banco:', uploadError);
-                    throw uploadError;
-                }
-
-                console.log('✅ Registrado no banco de dados');
-
-                // PASSO 8: Se for PDF do formulário, baixar na máquina do usuário
-                if (tipo === 'formulario') {
-                    const url = URL.createObjectURL(arquivo);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = nomeArquivoCompleto;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    console.log('✅ PDF baixado para máquina do usuário');
-                }
-
-                console.log('✅✅✅ UPLOAD CONCLUÍDO COM SUCESSO ✅✅✅');
-                console.log('Estrutura criada:', caminhoCompleto);
-
-            } catch (error) {
-                console.error('❌ ERRO NO UPLOAD:', error);
-                console.error('Detalhes do erro:', error.message);
-                throw error;
-            }
+        // PASSO 1: Determinar extensão
+        let extensao = '';
+        if (tipo === 'formulario') {
+            extensao = '.pdf';
+        } else if (arquivo.type === 'application/pdf') {
+            extensao = '.pdf';
+        } else if (arquivo.type === 'image/jpeg') {
+            extensao = '.jpg';
+        } else if (arquivo.type === 'image/png') {
+            extensao = '.png';
+        } else {
+            extensao = '.bin';
         }
 
+        // PASSO 2: Montar nome completo COM extensão
+        const nomeArquivoCompleto = nomeArquivoBase + extensao;
+
+        // PASSO 3: Determinar tipo de pasta
+        let tipoPasta = '';
+        if (tipo === 'formulario') {
+            tipoPasta = 'formulario';
+        } else if (tipo === 'documento') {
+            tipoPasta = 'identificacao';
+        }
+
+        // PASSO 4: Gerar caminho completo
+        const caminhoCompleto = gerarCaminhoCompleto(formData.nomeEmpresa, tipoPasta, nomeArquivoCompleto);
+
+        console.log('📁 Caminho COMPLETO:', caminhoCompleto);
+        console.log('📤 Iniciando upload para bucket: documentos');
+
+        // PASSO 5: Fazer upload
+        const { data, error } = await supabase.storage
+            .from('documentos')
+            .upload(caminhoCompleto, arquivo, {
+                cacheControl: '3600',
+                upsert: false
+            });
+
+        if (error) {
+            console.error('❌ Erro ao fazer upload:', error);
+            console.error('Caminho tentado:', caminhoCompleto);
+            throw error;
+        }
+
+        console.log('✅ Arquivo enviado para Storage');
+
+        // PASSO 6: Obter URL pública
+        const { data: publicUrl } = supabase.storage
+            .from('documentos')
+            .getPublicUrl(caminhoCompleto);
+
+        console.log('✅ URL pública gerada');
+
+        // PASSO 7: Registrar no banco de dados
+        const { error: uploadError } = await supabase
+            .from('uploads')
+            .insert([{
+                formulario_id: formularioId,
+                socio_id: socioId,
+                arquivo_nome: nomeArquivoCompleto,
+                arquivo_tipo: tipo,
+                arquivo_tamanho: arquivo.size,
+                arquivo_url: publicUrl.publicUrl,
+                arquivo_caminho: caminhoCompleto,
+            }]);
+
+        if (uploadError) {
+            console.error('❌ Erro ao registrar no banco:', uploadError);
+            throw uploadError;
+        }
+
+        console.log('✅ Registrado no banco de dados');
+
+        // ❌ REMOVIDO: Download automático do PDF
+        // O PDF agora fica apenas no Supabase, sem baixar na máquina local
+
+        console.log('✅✅✅ UPLOAD CONCLUÍDO COM SUCESSO ✅✅✅');
+        console.log('Estrutura criada:', caminhoCompleto);
+
+    } catch (error) {
+        console.error('❌ ERRO NO UPLOAD:', error);
+        console.error('Detalhes do erro:', error.message);
+        throw error;
+    }
+}
         // ===== SALVAR NO SUPABASE (ATUALIZADO) =====
         async function saveFormToSupabase() {
             try {
