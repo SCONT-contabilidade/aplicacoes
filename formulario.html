@@ -1267,7 +1267,7 @@
             const empresaSanitizada = sanitizarNomeArquivo(nomeEmpresa);
             
             // Estrutura: documentos/{empresa}/{tipo}/{arquivo}
-            const caminho = 'documentos/' + empresaSanitizada + '/' + tipo + '/' + nomeArquivo;
+            const caminho = 'alteracao/' + empresaSanitizada + '/' + tipo + '/' + nomeArquivo;
             
             console.log('📁 Caminho completo:', caminho);
             return caminho;
