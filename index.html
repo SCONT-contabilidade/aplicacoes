@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCONT - Gerenciador de Documentos</title>
+    <title>SCONT Soluções Contábeis - Portal de Aplicações</title>
     <style>
         /* ===== RESET E VARIÁVEIS ===== */
-
         * {
             margin: 0;
             padding: 0;
@@ -14,67 +13,57 @@
         }
 
         :root {
-            --primary-color: #8B3A3A;
-            --primary-light: #A85252;
-            --primary-dark: #6B2C2C;
-            --secondary-color: #70AD47;
-            --gray-50: #F5F5F5;
-            --gray-100: #ECECEC;
-            --gray-150: #E3E3E3;
-            --gray-200: #DADADA;
-            --gray-300: #CCCCCC;
-            --gray-400: #BBBDC0;
-            --gray-500: #8B8D91;
-            --gray-600: #6B6D71;
-            --gray-700: #4B4D51;
-            --gray-800: #2B2D31;
-            --gray-900: #0B0D11;
-            --success-color: #70AD47;
-            --error-color: #C5504A;
-            --warning-color: #F4B183;
+            /* Paleta cinza e bordô */
+            --header-color: #6B3E3E;
+            --header-dark: #4A2A2A;
+            --header-light: #8B5555;
+            --gray-50: #F9F9F9;
+            --gray-100: #F3F3F3;
+            --gray-150: #ECECEC;
+            --gray-200: #E5E5E5;
+            --gray-300: #D9D9D9;
+            --gray-400: #CCCCCC;
+            --gray-500: #999999;
+            --gray-600: #666666;
+            --gray-700: #4D4D4D;
+            --gray-800: #333333;
+            --accent-gray: #757575;
             --border-radius: 8px;
+            --box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --box-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
             --transition: all 0.3s ease;
         }
 
         html {
             font-size: 16px;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
-            color: var(--gray-800);
+            font-family: 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #F5F5F5 0%, #EFEFEF 100%);
+            color: var(--gray-700);
             line-height: 1.6;
             min-height: 100vh;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
         }
 
+        /* ===== CONTAINER ===== */
         .container {
-            max-width: 1000px;
+            max-width: 1400px;
             margin: 0 auto;
-            flex: 1;
-            width: 100%;
+            padding: 20px;
         }
 
         /* ===== HEADER ===== */
-
         .header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            background: linear-gradient(135deg, var(--header-color) 0%, var(--header-dark) 100%);
             color: white;
-            padding: 25px 15px;
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 15px;
+            padding: 60px 30px;
+            border-radius: 12px;
+            margin-bottom: 50px;
+            box-shadow: var(--box-shadow-lg);
+            text-align: center;
             position: relative;
             overflow: hidden;
-            margin-bottom: 20px;
-            border-radius: var(--border-radius);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
         }
 
         .header::before {
@@ -82,819 +71,472 @@
             position: absolute;
             top: -50%;
             right: -10%;
-            width: 400px;
-            height: 400px;
+            width: 300px;
+            height: 300px;
             background: rgba(255, 255, 255, 0.05);
             border-radius: 50%;
-            z-index: 0;
         }
 
-        .header-logo-section {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex: 0 0 auto;
-            position: relative;
-            z-index: 1;
-        }
-
-        .header-logo {
-            width: 55px;
-            height: 55px;
-            background: white;
-            border-radius: 10px;
-            padding: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-            transition: var(--transition);
-            flex-shrink: 0;
-        }
-
-        .header-logo:active {
-            transform: scale(0.98);
-        }
-
-        .header-logo img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -5%;
+            width: 250px;
+            height: 250px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 50%;
         }
 
         .header-content {
-            flex: 1;
             position: relative;
             z-index: 1;
-            min-width: 0;
+        }
+
+        .logo {
+            max-width: 150px;
+            height: auto;
+            margin-bottom: 20px;
+            filter: brightness(0) invert(1);
         }
 
         .header h1 {
-            font-size: 18px;
-            margin-bottom: 4px;
+            font-size: 32px;
             font-weight: 700;
-            letter-spacing: -0.3px;
-            color: white;
-            word-wrap: break-word;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
         }
 
         .header p {
-            font-size: 12px;
+            font-size: 16px;
             opacity: 0.95;
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: 400;
+            font-weight: 300;
         }
 
-        /* ===== WELCOME SECTION ===== */
-
-        .welcome-section {
-            margin-bottom: 25px;
+        /* ===== SEÇÃO DE MÓDULOS ===== */
+        .modules-section {
+            margin-bottom: 50px;
         }
 
-        .welcome-card {
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--header-color);
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid var(--header-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title::before {
+            content: attr(data-icon);
+            font-size: 28px;
+        }
+
+        /* ===== GRID DE APLICAÇÕES ===== */
+        .applications-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        /* ===== CARD DE APLICAÇÃO ===== */
+        .app-card {
             background: white;
-            padding: 20px;
             border-radius: var(--border-radius);
-            border-left: 5px solid var(--primary-color);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            padding: 25px;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
         }
 
-        .welcome-card h2 {
-            color: var(--primary-color);
-            font-size: 20px;
+        .app-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--header-color), var(--header-light));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+
+        .app-card:hover {
+            box-shadow: var(--box-shadow-lg);
+            transform: translateY(-5px);
+            border-color: var(--header-color);
+        }
+
+        .app-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .app-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+
+        .app-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--header-color);
             margin-bottom: 10px;
         }
 
-        .welcome-card p {
-            color: var(--gray-700);
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        /* ===== CATEGORY SECTION ===== */
-
-        .category-section {
-            margin-bottom: 30px;
-        }
-
-        .category-title {
-            color: var(--primary-color);
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid var(--primary-color);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* ===== FORMS GRID ===== */
-
-        .forms-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .form-card {
-            background: white;
-            border-radius: var(--border-radius);
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            border-top: 4px solid var(--primary-color);
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-card:active {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .form-card-disabled {
-            opacity: 0.7;
-            background: linear-gradient(135deg, white 0%, var(--gray-50) 100%);
-        }
-
-        .form-card-icon {
-            font-size: 32px;
-            margin-bottom: 12px;
-        }
-
-        .form-card h3 {
-            color: var(--primary-color);
-            font-size: 18px;
-            margin-bottom: 8px;
-            font-weight: 700;
-        }
-
-        .form-card p {
-            color: var(--gray-700);
+        .app-card p {
             font-size: 13px;
+            color: var(--gray-600);
             margin-bottom: 15px;
+            flex-grow: 1;
             line-height: 1.5;
-            flex: 1;
         }
 
-        .form-features {
+        .app-features {
             list-style: none;
             margin-bottom: 15px;
-            padding: 12px;
-            background: var(--gray-50);
-            border-radius: 6px;
-        }
-
-        .form-features li {
             font-size: 12px;
+        }
+
+        .app-features li {
+            padding: 5px 0;
             color: var(--gray-700);
-            margin-bottom: 6px;
-            padding-left: 8px;
+            padding-left: 18px;
+            position: relative;
         }
 
-        .form-features li:last-child {
-            margin-bottom: 0;
+        .app-features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--header-color);
+            font-weight: bold;
         }
 
-        /* ===== BUTTONS ===== */
-
-        .btn {
-            padding: 12px 16px;
+        .app-button {
+            background: linear-gradient(135deg, var(--header-color), var(--header-light));
+            color: white;
             border: none;
-            border-radius: var(--border-radius);
-            font-size: 13px;
+            padding: 12px 20px;
+            border-radius: 6px;
             font-weight: 600;
+            font-size: 13px;
             cursor: pointer;
             transition: var(--transition);
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .app-button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(107, 62, 62, 0.3);
+        }
+
+        .app-button:active {
+            transform: scale(0.98);
+        }
+
+        /* ===== CARD ESPECIAL ===== */
+        .app-card.featured {
+            border: 2px solid var(--header-color);
+            background: linear-gradient(135deg, rgba(107, 62, 62, 0.05) 0%, rgba(107, 62, 62, 0.02) 100%);
+        }
+
+        .badge-new {
+            display: inline-block;
+            background: var(--header-color);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            text-decoration: none;
-            touch-action: manipulation;
         }
 
-        .btn-full {
-            width: 100%;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
-            color: white;
-        }
-
-        .btn-primary:active {
-            transform: scale(0.98);
-            box-shadow: 0 3px 10px rgba(139, 58, 58, 0.2);
-        }
-
-        .btn-secondary {
-            background: var(--gray-300);
-            color: var(--gray-800);
-        }
-
-        .btn-secondary:active {
-            background: var(--gray-400);
-            transform: scale(0.98);
-        }
-
-        .btn-secondary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        /* ===== INFO SECTION ===== */
-
+        /* ===== SEÇÃO DE INFORMAÇÕES ===== */
         .info-section {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            box-shadow: var(--box-shadow);
             margin-bottom: 30px;
         }
 
-        .info-card {
-            background: white;
-            padding: 15px;
-            border-radius: var(--border-radius);
-            border-left: 4px solid var(--primary-color);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .info-card h3 {
-            color: var(--primary-color);
-            font-size: 14px;
-            margin-bottom: 8px;
+        .info-section h2 {
+            font-size: 20px;
             font-weight: 700;
+            color: var(--header-color);
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--gray-200);
         }
 
-        .info-card p {
-            color: var(--gray-700);
-            font-size: 12px;
-            line-height: 1.5;
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
         }
 
-        /* ===== SUPPORT SECTION ===== */
-
-        .support-section {
-            background: white;
-            padding: 20px;
-            border-radius: var(--border-radius);
-            border-left: 5px solid var(--primary-color);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            text-align: center;
-            margin-bottom: 30px;
+        .info-item {
+            padding: 15px;
+            background: var(--gray-50);
+            border-radius: 6px;
+            border-left: 4px solid var(--header-color);
         }
 
-        .support-section h2 {
-            color: var(--primary-color);
-            font-size: 18px;
+        .info-item h4 {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--header-color);
             margin-bottom: 8px;
         }
 
-        .support-section p {
-            color: var(--gray-700);
-            font-size: 13px;
-            margin-bottom: 15px;
-        }
-
-        .support-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .support-buttons .btn {
-            width: 100%;
+        .info-item p {
+            font-size: 12px;
+            color: var(--gray-600);
+            line-height: 1.5;
         }
 
         /* ===== FOOTER ===== */
-
         .footer {
-            background: var(--primary-color);
+            background: var(--header-dark);
             color: white;
-            padding: 20px;
-            text-align: center;
+            padding: 30px;
             border-radius: var(--border-radius);
-            margin-top: auto;
+            text-align: center;
+            margin-top: 50px;
+            font-size: 13px;
         }
 
         .footer p {
-            font-size: 12px;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
         }
 
-        .footer p:last-child {
-            margin-bottom: 0;
-        }
-
-        /* ===== BADGE SALVO ===== */
-
-        .badge-salvo {
-            display: inline-block;
-            background: var(--success-color);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
+        .footer a {
+            color: var(--header-light);
+            text-decoration: none;
             font-weight: 600;
-            margin-left: 8px;
         }
 
-        /* ===== RESPONSIVIDADE TABLET ===== */
+        .footer a:hover {
+            text-decoration: underline;
+        }
 
-        @media (min-width: 600px) {
-            body {
-                padding: 15px;
-            }
-
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
             .header {
-                padding: 30px 20px;
-                gap: 20px;
-                margin-bottom: 25px;
-            }
-
-            .header-logo {
-                width: 65px;
-                height: 65px;
+                padding: 40px 20px;
             }
 
             .header h1 {
-                font-size: 22px;
-            }
-
-            .header p {
-                font-size: 13px;
-            }
-
-            .welcome-card {
-                padding: 25px;
-            }
-
-            .welcome-card h2 {
                 font-size: 24px;
             }
 
-            .welcome-card p {
-                font-size: 15px;
-            }
-
-            .forms-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 25px;
-            }
-
-            .form-card {
-                padding: 25px;
-            }
-
-            .form-card-icon {
-                font-size: 40px;
-            }
-
-            .form-card h3 {
-                font-size: 20px;
-            }
-
-            .form-card p {
-                font-size: 14px;
-            }
-
-            .info-section {
-                grid-template-columns: 1fr 1fr 1fr;
-                gap: 20px;
-            }
-
-            .support-buttons {
-                flex-direction: row;
-                justify-content: center;
-            }
-
-            .support-buttons .btn {
-                width: auto;
-                flex: 1;
-                max-width: 150px;
-            }
-
-            .btn {
-                padding: 14px 20px;
-                font-size: 14px;
-            }
-        }
-
-        /* ===== RESPONSIVIDADE DESKTOP ===== */
-
-        @media (min-width: 900px) {
-            body {
-                padding: 20px;
-            }
-
-            .header {
-                padding: 40px 20px;
-                gap: 30px;
-                margin-bottom: 30px;
-            }
-
-            .header-logo {
-                width: 70px;
-                height: 70px;
-            }
-
-            .header h1 {
-                font-size: 28px;
-            }
-
             .header p {
                 font-size: 14px;
             }
 
-            .welcome-card {
-                padding: 30px;
+            .applications-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
             }
 
-            .welcome-card h2 {
-                font-size: 28px;
-                margin-bottom: 15px;
-            }
-
-            .welcome-card p {
-                font-size: 16px;
-            }
-
-            .forms-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 30px;
-                margin-bottom: 40px;
-            }
-
-            .form-card {
-                padding: 30px;
-            }
-
-            .form-card-icon {
-                font-size: 48px;
-                margin-bottom: 15px;
-            }
-
-            .form-card h3 {
-                font-size: 22px;
-                margin-bottom: 12px;
-            }
-
-            .form-card p {
-                font-size: 15px;
-                margin-bottom: 20px;
-            }
-
-            .form-features {
-                margin-bottom: 20px;
-                padding: 15px;
-            }
-
-            .form-features li {
-                font-size: 13px;
-                margin-bottom: 8px;
-            }
-
-            .info-section {
-                grid-template-columns: repeat(3, 1fr);
-                gap: 25px;
-                margin-bottom: 40px;
-            }
-
-            .info-card {
+            .app-card {
                 padding: 20px;
             }
 
-            .info-card h3 {
+            .app-icon {
+                font-size: 40px;
+            }
+
+            .app-card h3 {
                 font-size: 16px;
-                margin-bottom: 10px;
             }
 
-            .info-card p {
-                font-size: 14px;
+            .info-grid {
+                grid-template-columns: 1fr;
             }
 
-            .support-section {
-                padding: 30px;
-                margin-bottom: 40px;
-            }
-
-            .support-section h2 {
-                font-size: 22px;
-                margin-bottom: 10px;
-            }
-
-            .support-section p {
-                font-size: 15px;
-                margin-bottom: 20px;
-            }
-
-            .support-buttons {
-                flex-direction: row;
-                justify-content: center;
-                gap: 15px;
-            }
-
-            .support-buttons .btn {
-                width: auto;
-            }
-
-            .btn {
-                padding: 14px 24px;
-                font-size: 15px;
-            }
-
-            .footer {
-                padding: 25px;
-            }
-
-            .footer p {
-                font-size: 13px;
+            .section-title {
+                font-size: 20px;
             }
         }
 
-        /* ===== TOUCH OPTIMIZATION ===== */
-
-        @media (hover: none) and (pointer: coarse) {
-            .btn,
-            .form-card {
-                min-height: 44px;
+        /* ===== ANIMAÇÕES ===== */
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
             }
-
-            .btn {
-                padding: 14px 16px;
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
         }
+
+        .app-card {
+            animation: slideInUp 0.5s ease forwards;
+        }
+
+        .app-card:nth-child(1) { animation-delay: 0.1s; }
+        .app-card:nth-child(2) { animation-delay: 0.2s; }
+        .app-card:nth-child(3) { animation-delay: 0.3s; }
+        .app-card:nth-child(4) { animation-delay: 0.4s; }
+        .app-card:nth-child(5) { animation-delay: 0.5s; }
+        .app-card:nth-child(6) { animation-delay: 0.6s; }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-logo-section">
-            <div class="header-logo">
-                <img src="https://scontdf.com.br/wp-content/uploads/elementor/thumbs/LogoScont-peic298y16fua1mv1zkur66kgxw0v6rzhu846yyg3k.png" 
-                     alt="SCONT Soluções Contábeis" 
-                     title="SCONT - Gestão Documental">
+    <div class="container">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header-content">
+                <img src="https://scontdf.com.br/wp-content/uploads/2019/11/logo-scont-1024x363.png" alt="Logo SCONT" class="logo">
+                <h1>Portal de Aplicações</h1>
+                <p>SCONT Soluções Contábeis - Acesso centralizado a todas as ferramentas</p>
             </div>
-        </div>
-        <div class="header-content">
-            <h1>Gerenciador de Documentos</h1>
-            <p>Sistema Integrado de Gestão Documental</p>
-        </div>
-    </header>
+        </header>
 
-    <!-- Container Principal -->
-    <main class="container">
-        <!-- Seção de Boas-vindas -->
-        <section class="welcome-section">
-            <div class="welcome-card">
-                <h2>Bem-vindo à SCONT</h2>
-                <p>Selecione o formulário ou ferramenta que deseja utilizar para continuar com o gerenciamento de seus documentos.</p>
-            </div>
-        </section>
-
-       
-
-        <!-- CATEGORIA 1: GESTÃO DE EMPRESAS -->
-        <section class="category-section">
-            <h2 class="category-title">🏢 Gestão de Empresas</h2>
-            <div class="forms-grid">
-                <!-- Card: Registro de Empresa -->
-                <div class="form-card">
-                    <div class="form-card-icon">🏢</div>
+        <!-- GESTÃO DE EMPRESAS -->
+        <section class="modules-section">
+            <h2 class="section-title" data-icon="🏢">Gestão de Empresas</h2>
+            <div class="applications-grid">
+                <!-- CARD 1: REGISTRO DE EMPRESA -->
+                <a href="formulario_registro.html" class="app-card">
+                    <div class="app-icon">📝</div>
                     <h3>Registro de Empresa</h3>
                     <p>Cadastre uma nova empresa no sistema com todos os dados necessários.</p>
-                    <ul class="form-features">
-                        <li>✓ Dados básicos da empresa</li>
-                        <li>✓ Informações fiscais</li>
-                        <li>✓ Dados de sócios</li>
-                        <li>✓ Documentação</li>
+                    <ul class="app-features">
+                        <li>Dados básicos da empresa</li>
+                        <li>Informações fiscais</li>
+                        <li>Dados de sócios</li>
+                        <li>Documentação</li>
                     </ul>
-                    <a href="formulario_registro.html" class="btn btn-primary btn-full">
-                        <span>→</span> Novo Registro
-                    </a>
-                </div>
+                    <button class="app-button">Acessar Registro</button>
+                </a>
 
-                <!-- Card: Alteração de Empresa -->
-                <div class="form-card">
-                    <div class="form-card-icon">✏️</div>
+                <!-- CARD 2: ALTERAÇÃO DE EMPRESA -->
+                <a href="formulario_alteracao.html" class="app-card">
+                    <div class="app-icon">✏️</div>
                     <h3>Alteração de Empresa</h3>
                     <p>Atualize os dados de uma empresa já registrada no sistema.</p>
-                    <ul class="form-features">
-                        <li>✓ Editar dados básicos</li>
-                        <li>✓ Atualizar informações fiscais</li>
-                        <li>✓ Gerenciar sócios</li>
-                        <li>✓ Histórico de alterações</li>
+                    <ul class="app-features">
+                        <li>Editar dados básicos</li>
+                        <li>Atualizar informações fiscais</li>
+                        <li>Gerenciar sócios</li>
+                        <li>Histórico de alterações</li>
                     </ul>
-                    <a href="formulario_alteracao.html" class="btn btn-primary btn-full">
-                        <span>→</span> Alterar Dados
-                    </a>
-                </div>
+                    <button class="app-button">Acessar Alteração</button>
+                </a>
             </div>
         </section>
 
-        <!-- CATEGORIA 2: GERENCIAMENTO DE ARQUIVOS -->
-        <section class="category-section">
-            <h2 class="category-title">📁 Gerenciamento de Arquivos</h2>
-            <div class="forms-grid">
-                <!-- Card: Leitor de Arquivos -->
-                <div class="form-card">
-                    <div class="form-card-icon">📂</div>
-                    <h3>Leitor de Arquivos</h3>
+        <!-- GESTÃO DE DOCUMENTOS -->
+        <section class="modules-section">
+            <h2 class="section-title" data-icon="📂">Gestão de Documentos</h2>
+            <div class="applications-grid">
+                <!-- CARD 3: GERENCIADOR DE DOCUMENTOS -->
+                <a href="leitor.html" class="app-card">
+                    <div class="app-icon">📋</div>
+                    <h3>Gerenciador de Documentos</h3>
                     <p>Visualize, organize e gerencie todos os seus arquivos e documentos.</p>
-                    <ul class="form-features">
-                        <li>✓ Visualizar documentos</li>
-                        <li>✓ Organizar arquivos</li>
-                        <li>✓ Buscar documentos</li>
-                        <li>✓ Download de arquivos</li>
+                    <ul class="app-features">
+                        <li>Visualizar documentos</li>
+                        <li>Organizar arquivos</li>
+                        <li>Buscar documentos</li>
+                        <li>Download de arquivos</li>
                     </ul>
-                    <a href="leitor.html" class="btn btn-primary btn-full">
-                        <span>→</span> Acessar Gerenciador
-                    </a>
-                </div>
+                    <button class="app-button">Acessar Documentos</button>
+                </a>
+
+                <!-- CARD 4: CONTROLADOR DE CERTIFICADOS -->
+                <a href="certificado_digital.html" class="app-card featured">
+                    <div class="badge-new">🆕 Novo</div>
+                    <div class="app-icon">🔐</div>
+                    <h3>Controlador de Certificados</h3>
+                    <p>Gestão completa de certificados digitais com análise avançada e relatórios detalhados.</p>
+                    <ul class="app-features">
+                        <li>Dashboard com alertas críticos</li>
+                        <li>Relatórios multi-filtro</li>
+                        <li>Upload de arquivos</li>
+                        <li>Histórico de atividades</li>
+                    </ul>
+                    <button class="app-button">Acessar Controlador</button>
+                </a>
             </div>
         </section>
 
-        <!-- CATEGORIA 3: FUTURAS FUNCIONALIDADES -->
-        <section class="category-section">
-            <h2 class="category-title">🔮 Próximas Funcionalidades</h2>
-            <div class="forms-grid">
-                <!-- Card: Relatórios -->
-                <div class="form-card form-card-disabled">
-                    <div class="form-card-icon">📊</div>
-                    <h3>Relatórios</h3>
-                    <p>Gere relatórios detalhados sobre a gestão de ponto e folha de pagamento.</p>
-                    <ul class="form-features">
-                        <li>✓ Relatórios mensais</li>
-                        <li>✓ Análise de horas</li>
-                        <li>✓ Gráficos e estatísticas</li>
-                        <li>✓ Exportação de dados</li>
-                    </ul>
-                    <button class="btn btn-secondary btn-full" disabled>
-                        <span>⏳</span> Em Breve
-                    </button>
-                </div>
-
-                <!-- Card: Gestão de Colaboradores -->
-                <div class="form-card form-card-disabled">
-                    <div class="form-card-icon">👥</div>
-                    <h3>Gestão de Colaboradores</h3>
-                    <p>Administre os dados e informações de todos os seus colaboradores.</p>
-                    <ul class="form-features">
-                        <li>✓ Cadastro de funcionários</li>
-                        <li>✓ Dados pessoais</li>
-                        <li>✓ Histórico funcional</li>
-                        <li>✓ Documentos</li>
-                    </ul>
-                    <button class="btn btn-secondary btn-full" disabled>
-                        <span>⏳</span> Em Breve
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Seção de Informações -->
+        <!-- SEÇÃO DE INFORMAÇÕES -->
         <section class="info-section">
-            <div class="info-card">
-                <h3>📌 Como Usar</h3>
-                <p>Clique no botão "Acessar" do módulo desejado para começar. Todos os dados são salvos de forma segura e podem ser exportados a qualquer momento.</p>
-            </div>
-
-            <div class="info-card">
-                <h3>🔒 Segurança</h3>
-                <p>Seus dados são protegidos com os mais altos padrões de segurança. Nenhuma informação é compartilhada sem sua autorização.</p>
-            </div>
-
-            <div class="info-card">
-                <h3>💾 Backup</h3>
-                <p>Todos os formulários preenchidos são automaticamente salvos. Você pode retomar o preenchimento a qualquer momento.</p>
-            </div>
-        </section>
-
-        <!-- Seção de Suporte -->
-        <section class="support-section">
-            <h2>Precisa de Ajuda?</h2>
-            <p>Entre em contato com nosso suporte para dúvidas ou problemas.</p>
-            <div class="support-buttons">
-                <a href="mailto:suporte@scont.com.br" class="btn btn-secondary">
-                    <span>📧</span> Email
-                </a>
-                <a href="tel:+5561999999999" class="btn btn-secondary">
-                    <span>📞</span> Telefone
-                </a>
-                <a href="#" class="btn btn-secondary">
-                    <span>💬</span> Chat
-                </a>
+            <h2>📌 Informações Importantes</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <h4>🔐 Segurança</h4>
+                    <p>Todos os dados são criptografados e armazenados com segurança em servidores certificados.</p>
+                </div>
+                <div class="info-item">
+                    <h4>☁️ Sincronização em Nuvem</h4>
+                    <p>Acesse seus dados de qualquer lugar, em qualquer dispositivo, sempre sincronizado.</p>
+                </div>
+                <div class="info-item">
+                    <h4>📞 Suporte Técnico</h4>
+                    <p>Equipe disponível para suporte via WhatsApp: <strong>+55 61 99354-3223</strong></p>
+                </div>
+                <div class="info-item">
+                    <h4>⚡ Performance</h4>
+                    <p>Interface otimizada para carregamento rápido e operações instantâneas.</p>
+                </div>
+                <div class="info-item">
+                    <h4>📊 Relatórios</h4>
+                    <p>Gere relatórios detalhados em múltiplos formatos (PDF, CSV, Excel).</p>
+                </div>
+                <div class="info-item">
+                    <h4>🔄 Backup Automático</h4>
+                    <p>Seus dados são automaticamente salvos e sincronizados em tempo real.</p>
+                </div>
             </div>
         </section>
-    </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <p>&copy; 2026 SCONT Soluções Contábeis. Todos os direitos reservados.</p>
-        
-    </footer>
+        <!-- FOOTER -->
+        <footer class="footer">
+            <p><strong>SCONT Soluções Contábeis LTDA</strong></p>
+           
+            <p>© 2026 - Todos os direitos reservados | <a href="mailto:contato@scontdf.com.br">contato@scontdf.com.br</a></p>
+        </footer>
+    </div>
+    </div>
 
     <script>
-        /**
-         * SCONT - Gerenciador de Documentos
-         * Script unificado para página de índice/dashboard
-         */
-
+        // Animação suave ao carregar
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('Gerenciador de Documentos carregado');
-            inicializarEventos();
-            verificarFormulariosPreenchidos();
+            console.log('Portal de Aplicações SCONT carregado com sucesso');
         });
 
-        function inicializarEventos() {
-            // Adicionar feedback aos cards
-            const formCards = document.querySelectorAll('.form-card:not(.form-card-disabled)');
-            
-            formCards.forEach(card => {
-                card.addEventListener('click', (e) => {
-                    if (e.target.tagName === 'A') {
-                        console.log('Navegando para:', e.target.href);
-                        rastrearClique(e.target.textContent);
-                    }
-                });
-
-                card.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        const link = card.querySelector('a');
-                        if (link) {
-                            window.location.href = link.href;
-                        }
-                    }
-                });
-            });
-
-            // Botões de suporte
-            const supportButtons = document.querySelectorAll('.support-buttons .btn');
-            supportButtons.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    console.log('Suporte clicado:', e.target.textContent);
-                });
-            });
-        }
-
-        function verificarFormulariosPreenchidos() {
-            // Verificar se há formulários salvos no localStorage
-            const folhaPreenchida = localStorage.getItem('folha_ponto_salva');
-            const empresaPreenchida = localStorage.getItem('empresa_salva');
-            const empresaAlterada = localStorage.getItem('empresa_alterada');
-
-            if (folhaPreenchida) {
-                console.log('Folha de ponto salva encontrada');
-                adicionarBadgeSalvo('Gestão de Ponto');
-            }
-
-            if (empresaPreenchida) {
-                console.log('Empresa salva encontrada');
-                adicionarBadgeSalvo('Registro de Empresa');
-            }
-
-            if (empresaAlterada) {
-                console.log('Empresa alterada encontrada');
-                adicionarBadgeSalvo('Alteração de Empresa');
-            }
-        }
-
-        function adicionarBadgeSalvo(nomeFormulario) {
-            const cards = document.querySelectorAll('.form-card h3');
-            
-            cards.forEach(card => {
-                if (card.textContent.includes(nomeFormulario)) {
-                    // Verificar se badge já existe
-                    if (!card.querySelector('.badge-salvo')) {
-                        const badge = document.createElement('span');
-                        badge.className = 'badge-salvo';
-                        badge.textContent = '✓ Salvo';
-                        card.appendChild(badge);
-                    }
+        // Adicionar feedback visual ao clicar nos cards
+        document.querySelectorAll('.app-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                if (e.target.closest('.app-button')) {
+                    return;
                 }
+                window.location.href = this.href;
             });
-        }
-
-        // Analytics simples
-        function rastrearClique(formulario) {
-            const dados = {
-                formulario: formulario,
-                timestamp: new Date().toISOString(),
-                navegador: navigator.userAgent
-            };
-            
-            console.log('Clique rastreado:', dados);
-        }
-
-        // Verificar suporte a localStorage
-        if (!window.localStorage) {
-            console.warn('localStorage não suportado');
-        }
+        });
     </script>
 </body>
 </html>

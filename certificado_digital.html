@@ -1,0 +1,1953 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SCONT Soluções Contábeis| Gestão de Certificados Digitais</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{
+      --bg:#eef1f5;
+      --bg-soft:#f7f9fc;
+      --card:#ffffff;
+      --line:#d9e0ea;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --brand:#6f1d1b;
+      --brand-2:#8b2d2b;
+      --brand-3:#a94442;
+      --success:#198754;
+      --warning:#d39e00;
+      --danger:#c62828;
+      --info:#0d6efd;
+      --shadow:0 14px 40px rgba(15,23,42,.08);
+      --shadow-soft:0 6px 18px rgba(15,23,42,.05);
+      --radius:18px;
+      --radius-sm:12px;
+      --sidebar-w:290px;
+      --sidebar-w-collapsed:78px;
+      --topbar-h:74px;
+      --transition:.22s ease;
+    }
+    [data-theme="dark"]{
+      --bg:#0f172a;
+      --bg-soft:#111827;
+      --card:#111827;
+      --line:#243044;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --shadow:0 18px 50px rgba(0,0,0,.35);
+      --shadow-soft:0 8px 20px rgba(0,0,0,.15);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;background:var(--bg);color:var(--text);line-height:1.5;transition:var(--transition)}
+    button,input,select,textarea{font:inherit;color:inherit}
+    .app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh;transition:var(--transition)}
+    .app.sidebar-collapsed{grid-template-columns:var(--sidebar-w-collapsed) 1fr}
+    .sidebar{background:linear-gradient(180deg, #1f2937 0%, #111827 100%);color:#fff;padding:20px 16px;display:flex;flex-direction:column;gap:20px;position:relative;z-index:100;overflow-y:auto;max-height:100vh}
+    .brand{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .brand-box{flex:1}
+    .brand-title{font-size:18px;font-weight:800;line-height:1.2;color:#fff}
+    .brand-title span{color:#e4b1af}
+    .brand-sub{font-size:11px;color:#cbd5e1;margin-top:4px}
+    .collapse-btn{background:transparent;border:0;color:#fff;cursor:pointer;font-size:18px;padding:4px;transition:var(--transition)}
+    .collapse-btn:hover{opacity:.7}
+    .nav{display:flex;flex-direction:column;gap:6px}
+    .nav button{border:0;background:transparent;color:#cbd5e1;text-align:left;padding:12px 14px;border-radius:10px;cursor:pointer;transition:var(--transition);font-size:14px;display:flex;align-items:center;gap:12px;white-space:nowrap}
+    .nav button.active,.nav button:hover{background:rgba(255,255,255,.12);color:#fff}
+    .nav button .ico{font-size:18px}
+    .nav button .txt{flex:1}
+    .app.sidebar-collapsed .nav button .txt{display:none}
+    .sidebar-footer{margin-top:auto;font-size:12px;color:#cbd5e1;line-height:1.5}
+    .app.sidebar-collapsed .sidebar-footer{display:none}
+    .main{display:flex;flex-direction:column;min-width:0}
+    .topbar{background:var(--card);border-bottom:1px solid var(--line);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;gap:20px;height:var(--topbar-h);box-shadow:var(--shadow-soft);flex-wrap:wrap}
+    .top-left{display:flex;align-items:center;gap:16px;flex:1;min-width:0}
+    .menu-toggle{background:transparent;border:0;font-size:20px;cursor:pointer;color:var(--brand);padding:8px;transition:var(--transition)}
+    .menu-toggle:hover{opacity:.7}
+    .page-title{min-width:0}
+    .page-title h1{font-size:24px;margin:0;line-height:1.1}
+    .page-title span{font-size:12px;color:var(--muted)}
+    .top-actions{display:flex;align-items:center;gap:12px;min-width:0;flex-wrap:wrap;justify-content:flex-end}
+    .search{width:min(430px, 34vw);position:relative}
+    .search input{width:100%;padding:12px 16px 12px 42px;border:1px solid var(--line);border-radius:999px;outline:none;background:var(--card);color:var(--text);box-shadow:var(--shadow-soft);transition:var(--transition)}
+    .search input:focus{border-color:rgba(111,29,27,.45);box-shadow:0 0 0 4px rgba(111,29,27,.08)}
+    .search .mag{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-soft);border-radius:999px;font-size:12px;color:var(--muted);font-weight:600}
+    .notif{position:relative;cursor:pointer;font-size:20px;transition:var(--transition)}
+    .notif:hover{opacity:.7}
+    .notif[data-count]:not([data-count="0"])::after{content:attr(data-count);position:absolute;top:-6px;right:-8px;background:var(--danger);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+    .avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg, var(--brand), var(--brand-3));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+    .content{flex:1;overflow-y:auto;padding:24px}
+    .page{display:none}
+    .page.active{display:block}
+    .section{background:var(--card);border-radius:var(--radius);border:1px solid var(--line);margin-bottom:20px;overflow:hidden;box-shadow:var(--shadow-soft)}
+    .section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:20px 24px;border-bottom:1px solid var(--line);background:var(--bg-soft)}
+    .section-head h2{font-size:18px;margin:0;color:var(--brand)}
+    .meta{font-size:12px;color:var(--muted);margin-top:4px}
+    .section-body{padding:20px 24px}
+    .grid-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:20px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow-soft);transition:var(--transition)}
+    .card:hover{border-color:var(--brand);box-shadow:0 10px 25px rgba(111,29,27,.12)}
+    .card-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+    .card-value{font-size:28px;font-weight:800;color:var(--brand);line-height:1}
+    .card-meta{font-size:12px;color:var(--muted);margin-top:4px}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:var(--radius-sm)}
+    table{width:100%;border-collapse:collapse;min-width:900px}
+    th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-size:13px}
+    th{background:var(--bg-soft);text-transform:uppercase;letter-spacing:.03em;font-size:11px;font-weight:700;color:var(--muted)}
+    tr:hover td{background:var(--bg-soft)}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.02em}
+    .badge.success{background:rgba(25,135,84,.1);color:var(--success)}
+    .badge.warning{background:rgba(211,158,0,.1);color:var(--warning)}
+    .badge.danger{background:rgba(198,40,40,.1);color:var(--danger)}
+    .badge.info{background:rgba(13,110,253,.1);color:var(--info)}
+    .badge.neutral{background:rgba(107,114,128,.1);color:var(--muted)}
+    .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px}
+    .timeline{display:flex;flex-direction:column;gap:16px}
+    .timeline-item{display:flex;gap:12px;padding:12px;background:var(--bg-soft);border-radius:var(--radius-sm);border-left:3px solid var(--brand)}
+    .timeline-date{font-size:11px;color:var(--muted);font-weight:600;min-width:80px}
+    .timeline-content{flex:1}
+    .timeline-type{font-size:12px;font-weight:700;color:var(--brand)}
+    .timeline-desc{font-size:13px;color:var(--text);margin-top:4px}
+    .toolbar{display:grid;gap:10px;grid-template-columns:repeat(6,minmax(0,1fr));margin-bottom:16px}
+    .toolbar .field{margin:0}
+    .field{display:flex;flex-direction:column;gap:6px}
+    .field label{font-size:13px;font-weight:600;color:var(--text)}
+    .field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--card);color:var(--text);outline:none;transition:var(--transition);font-size:13px}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(111,29,27,.45);box-shadow:0 0 0 4px rgba(111,29,27,.08)}
+    .field textarea{min-height:90px;resize:vertical}
+    .actions-row{display:flex;align-items:end;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+    .btn{border:1px solid transparent;border-radius:12px;padding:11px 14px;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:var(--transition);white-space:nowrap;cursor:pointer;outline:none}
+    .btn-primary{background:linear-gradient(135deg, var(--brand), var(--brand-3));color:#fff;box-shadow:0 10px 18px rgba(111,29,27,.16)}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 24px rgba(111,29,27,.24)}
+    .btn-secondary{background:var(--card);color:var(--brand);border-color:rgba(111,29,27,.2)}
+    .btn-secondary:hover{background:var(--bg-soft);border-color:var(--brand)}
+    .btn-ghost{background:var(--card);color:var(--text);border-color:var(--line)}
+    .btn-ghost:hover{background:var(--bg-soft);border-color:var(--brand)}
+    .modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:20px}
+    .modal.open{display:flex}
+    .modal-card{background:var(--card);border-radius:var(--radius);max-width:700px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.3)}
+    .modal-head{display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid var(--line);background:linear-gradient(180deg, rgba(249,250,251,.95), rgba(243,244,246,.95))}
+    .modal-head strong{color:var(--brand);font-size:15px}
+    .modal-body{padding:18px 20px 20px}
+    .form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+    .form-grid .full{grid-column:1 / -1}
+    .details-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
+    .details-box{border:1px solid var(--line);border-radius:18px;background:var(--bg-soft);padding:16px}
+    .details-box h4{margin:0 0 12px;color:var(--brand);font-size:14px}
+    .kv{display:grid;grid-template-columns:170px 1fr;gap:8px 14px;font-size:13px;line-height:1.5}
+    .kv div:nth-child(odd){color:var(--muted);font-weight:700}
+    .muted{color:var(--muted)}
+    .note{background:rgba(13,110,253,.05);border-left:3px solid var(--info);padding:12px 14px;border-radius:6px;font-size:13px;color:var(--text);margin-bottom:14px}
+    .switch{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .switch input{width:auto;margin:0}
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+    .footer{padding:16px 24px;background:var(--bg-soft);border-top:1px solid var(--line);text-align:center;font-size:12px;color:var(--muted)}
+    .footer-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;flex-wrap:wrap}
+    small{display:block;margin-top:4px;color:var(--muted);font-size:12px}
+    .status-badge{display:inline-block;padding:4px 8px;border-radius:4px;font-size:11px;font-weight:600}
+    .status-badge.connected{background:rgba(25,135,84,.1);color:var(--success)}
+    .status-badge.disconnected{background:rgba(198,40,40,.1);color:var(--danger)}
+    .tabs{display:flex;gap:8px;border-bottom:1px solid var(--line);margin-bottom:16px;flex-wrap:wrap}
+    .tab-btn{background:transparent;border:0;padding:12px 16px;cursor:pointer;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;transition:var(--transition)}
+    .tab-btn.active{color:var(--brand);border-bottom-color:var(--brand)}
+    .tab-panel{display:none}
+    .tab-panel.active{display:block}
+    .report-card{background:var(--bg-soft);border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px}
+    .report-card h3{margin:0 0 12px;color:var(--brand);font-size:14px}
+    .report-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+    .report-stat{background:var(--card);padding:12px;border-radius:8px;text-align:center}
+    .report-stat-value{font-size:24px;font-weight:800;color:var(--brand)}
+    .report-stat-label{font-size:11px;color:var(--muted);margin-top:4px}
+    @media (max-width: 1280px){
+      .grid-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .split{grid-template-columns:1fr}
+      .details-grid{grid-template-columns:1fr}
+      .toolbar{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .search{width:100%}
+    }
+    @media (max-width: 900px){
+      .app{grid-template-columns:1fr}
+      .sidebar{position:fixed;left:0;top:0;height:100vh;width:var(--sidebar-w);transform:translateX(-100%);transition:var(--transition);z-index:999}
+      .sidebar.open{transform:translateX(0)}
+      .app.sidebar-collapsed .sidebar{transform:translateX(-100%)}
+      .topbar{padding:12px 16px}
+      .content{padding:14px}
+      .grid-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .toolbar{grid-template-columns:1fr}
+      .form-grid{grid-template-columns:1fr}
+    }
+    @media (max-width: 640px){
+      .grid-cards{grid-template-columns:1fr}
+      .content{padding:14px}
+      .section-head{flex-direction:column;align-items:flex-start}
+      .top-actions{gap:10px}
+      .pill{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-box">
+          <div class="brand-title">SCONT</div>
+          <div class="brand-sub">Gestão de Certificados Digitais</div>
+        </div>
+        <button class="collapse-btn" id="sidebarCollapseBtn" title="Recolher menu">☰</button>
+      </div>
+      <nav class="nav">
+        <button class="active" data-page="dashboard"><span class="ico">🏠</span><span class="txt">Dashboard</span></button>
+        <button data-page="certificados"><span class="ico">📄</span><span class="txt">Certificados</span></button>
+        <button data-page="relatorios"><span class="ico">📊</span><span class="txt">Relatórios</span></button>
+        <button data-page="agenda"><span class="ico">📅</span><span class="txt">Agenda</span></button>
+        <button data-page="historico"><span class="ico">🕓</span><span class="txt">Histórico</span></button>
+        <button data-page="seguranca"><span class="ico">🔒</span><span class="txt">Segurança</span></button>
+        <button data-page="configuracoes"><span class="ico">⚙️</span><span class="txt">Configurações</span></button>
+      </nav>
+      <div class="sidebar-footer">
+        Controle rigoroso, histórico completo e alertas visuais para certificados digitais.
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="top-left">
+          <button class="menu-toggle" id="menuToggle" title="Alternar menu lateral">☰</button>
+          <div class="page-title">
+            <h1 id="pageTitle">Dashboard</h1>
+            <span id="pageSubtitle">Visão geral operacional da carteira</span>
+          </div>
+        </div>
+        <div class="top-actions">
+          <div class="search">
+            <span class="mag">🔍</span>
+            <input id="searchGlobal" type="text" placeholder="Buscar empresa, CPF/CNPJ, tipo, responsável..." />
+          </div>
+          <div class="pill" id="statusConnection"><span class="status-badge disconnected">⚫ Conectando...</span></div>
+          <div class="pill" id="themeLabel">Tema claro</div>
+          <div class="notif" id="notifBtn" data-count="0" title="Alertas">🔔</div>
+          <div class="avatar">SC</div>
+        </div>
+      </header>
+      <section class="content">
+        <!-- DASHBOARD -->
+        <section class="page active" id="page-dashboard">
+          <div class="grid-cards" id="cards"></div>
+          <section class="section">
+            <div class="section-head">
+              <div>
+                <h2>Alertas críticos</h2>
+                <div class="meta">Vencimentos mais próximos, atrasos e pendências financeiras</div>
+              </div>
+              <div class="meta">Atualizado em tempo real no front-end</div>
+            </div>
+            <div class="section-body">
+              <div class="table-wrap">
+                <table style="min-width:900px">
+                  <thead>
+                    <tr>
+                      <th>Empresa</th>
+                      <th>Vencimento</th>
+                      <th>Situação</th>
+                      <th>Dias restantes</th>
+                    </tr>
+                  </thead>
+                  <tbody id="alertsTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+          <section class="section">
+            <div class="section-head">
+              <div>
+                <h2>Agenda rápida</h2>
+                <div class="meta">Compromissos e contatos programados</div>
+              </div>
+            </div>
+            <div class="section-body">
+              <h3>Agenda rápida</h3>
+              <div class="table-wrap" style="margin-bottom:18px">
+                <table style="min-width:0">
+                  <thead>
+                    <tr>
+                      <th>Empresa</th>
+                      <th>Agendamento</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="agendaTable"></tbody>
+                </table>
+              </div>
+              <h3>Histórico recente</h3>
+              <div class="timeline" id="timeline"></div>
+            </div>
+          </section>
+        </section>
+
+        <!-- CERTIFICADOS -->
+        <section class="page" id="page-certificados">
+          <section class="section">
+            <div class="section-head">
+              <div>
+                <h2>Certificados digitais</h2>
+                <div class="meta">Gestão, filtros, paginação e ações rápidas</div>
+              </div>
+              <button class="btn btn-primary" id="btnNewCert">+ Novo certificado</button>
+            </div>
+            <div class="section-body">
+              <div class="toolbar">
+                <div class="field">
+                  <label>Empresa</label>
+                  <input id="fEmpresa" type="text" placeholder="Nome da empresa">
+                </div>
+                <div class="field">
+                  <label>Tipo</label>
+                  <select id="fTipo">
+                    <option value="">Todos</option>
+                    <option>A1</option>
+                    <option>A3</option>
+                    <option>e-CNPJ</option>
+                    <option>e-CPF</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Situação</label>
+                  <select id="fSituacao">
+                    <option value="">Todas</option>
+                    <option>Ativo</option>
+                    <option>Agendado</option>
+                    <option>Renovado</option>
+                    <option>Aguardando Contato</option>
+                    <option>Vencido</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Financeiro</label>
+                  <select id="fFinanceiro">
+                    <option value="">Todos</option>
+                    <option>Pago</option>
+                    <option>Em Aberto</option>
+                  </select>
+                </div>
+                <button class="btn btn-secondary" id="btnApplyFilters">Filtrar</button>
+                <button class="btn btn-ghost" id="btnResetFilters">Limpar</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Empresa</th>
+                      <th>Tipo</th>
+                      <th>Vencimento</th>
+                      <th>Emissão</th>
+                      <th>Situação</th>
+                      <th>Agendamento</th>
+                      <th>Cliente</th>
+                      <th>Financeiro</th>
+                      <th>Forma Pagamento</th>
+                      <th>Arquivo</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="certTable"></tbody>
+                </table>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap">
+                <div class="muted" id="pageInfo"></div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <button class="btn btn-ghost" id="prevPage">← Anterior</button>
+                  <button class="btn btn-ghost" id="nextPage">Próxima →</button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <!-- RELATÓRIOS -->
+        <section class="page" id="page-relatorios">
+          <section class="section">
+            <div class="section-head">
+              <div>
+                <h2>Relatórios avançados</h2>
+                <div class="meta">Análise completa de certificados com múltiplos filtros</div>
+              </div>
+            </div>
+            <div class="section-body">
+              <!-- ABAS DE RELATÓRIOS -->
+              <div class="tabs">
+                <button class="tab-btn active" data-tab="tab-vencimento">📅 Vencimento</button>
+                <button class="tab-btn" data-tab="tab-financeiro">💰 Financeiro</button>
+                <button class="tab-btn" data-tab="tab-situacao">📋 Situação</button>
+                <button class="tab-btn" data-tab="tab-tipo">🏷️ Tipo</button>
+                <button class="tab-btn" data-tab="tab-cliente">👥 Cliente</button>
+                <button class="tab-btn" data-tab="tab-completo">📊 Completo</button>
+              </div>
+
+              <!-- ABA 1: VENCIMENTO -->
+              <div class="tab-panel active" id="tab-vencimento">
+                <div class="report-card">
+                  <h3>Filtro por Vencimento</h3>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px">
+                    <div class="field">
+                      <label>Vence nos próximos X dias</label>
+                      <input id="diasVencimento" type="number" min="1" value="30" placeholder="Digite o número de dias">
+                    </div>
+                    <div class="field">
+                      <label>Ou selecione um período</label>
+                      <select id="periodoVencimento">
+                        <option value="">Todos</option>
+                        <option value="7">Próximos 7 dias</option>
+                        <option value="15">Próximos 15 dias</option>
+                        <option value="30">Próximos 30 dias</option>
+                        <option value="60">Próximos 60 dias</option>
+                        <option value="90">Próximos 90 dias</option>
+                        <option value="-1">Vencidos</option>
+                      </select>
+                    </div>
+                    <div style="display:flex;align-items:flex-end">
+                      <button class="btn btn-primary" id="btnGerarVencimento">Gerar Relatório</button>
+                    </div>
+                  </div>
+                  <div id="statsVencimento" class="report-stats"></div>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Empresa</th>
+                          <th>Vencimento</th>
+                          <th>Dias Restantes</th>
+                          <th>Situação</th>
+                          <th>Responsável</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tableVencimento"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ABA 2: FINANCEIRO -->
+              <div class="tab-panel" id="tab-financeiro">
+                <div class="report-card">
+                  <h3>Análise Financeira</h3>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px">
+                    <div class="field">
+                      <label>Situação Financeira</label>
+                      <select id="filtroFinanceiro">
+                        <option value="">Todos</option>
+                        <option value="Pago">Pago</option>
+                        <option value="Em Aberto">Em Aberto</option>
+                      </select>
+                    </div>
+                    <div style="display:flex;align-items:flex-end">
+                      <button class="btn btn-primary" id="btnGerarFinanceiro">Gerar Relatório</button>
+                    </div>
+                  </div>
+                  <div id="statsFinanceiro" class="report-stats"></div>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Empresa</th>
+                          <th>Vencimento</th>
+                          <th>Situação Financeira</th>
+                          <th>Forma de Pagamento</th>
+                          <th>Responsável</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tableFinanceiro"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ABA 3: SITUAÇÃO -->
+              <div class="tab-panel" id="tab-situacao">
+                <div class="report-card">
+                  <h3>Análise por Situação</h3>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px">
+                    <div class="field">
+                      <label>Situação do Certificado</label>
+                      <select id="filtroSituacao">
+                        <option value="">Todos</option>
+                        <option value="Ativo">Ativo</option>
+                        <option value="Agendado">Agendado</option>
+                        <option value="Renovado">Renovado</option>
+                        <option value="Aguardando Contato">Aguardando Contato</option>
+                        <option value="Vencido">Vencido</option>
+                      </select>
+                    </div>
+                    <div style="display:flex;align-items:flex-end">
+                      <button class="btn btn-primary" id="btnGerarSituacao">Gerar Relatório</button>
+                    </div>
+                  </div>
+                  <div id="statsSituacao" class="report-stats"></div>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Empresa</th>
+                          <th>Situação</th>
+                          <th>Vencimento</th>
+                          <th>Tipo</th>
+                          <th>Responsável</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tableSituacao"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ABA 4: TIPO -->
+              <div class="tab-panel" id="tab-tipo">
+                <div class="report-card">
+                  <h3>Análise por Tipo de Certificado</h3>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px">
+                    <div class="field">
+                      <label>Tipo de Certificado</label>
+                      <select id="filtroTipo">
+                        <option value="">Todos</option>
+                        <option value="A1">A1</option>
+                        <option value="A3">A3</option>
+                        <option value="e-CNPJ">e-CNPJ</option>
+                        <option value="e-CPF">e-CPF</option>
+                      </select>
+                    </div>
+                    <div style="display:flex;align-items:flex-end">
+                      <button class="btn btn-primary" id="btnGerarTipo">Gerar Relatório</button>
+                    </div>
+                  </div>
+                  <div id="statsTipo" class="report-stats"></div>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Empresa</th>
+                          <th>Tipo</th>
+                          <th>Vencimento</th>
+                          <th>Situação</th>
+                          <th>Responsável</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tableTipo"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ABA 5: CLIENTE -->
+              <div class="tab-panel" id="tab-cliente">
+                <div class="report-card">
+                  <h3>Análise por Cliente</h3>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px">
+                    <div class="field">
+                      <label>Tipo de Cliente</label>
+                      <select id="filtroCliente">
+                        <option value="">Todos</option>
+                        <option value="Recorrente">Recorrente</option>
+                        <option value="Eventual">Eventual</option>
+                      </select>
+                    </div>
+                    <div style="display:flex;align-items:flex-end">
+                      <button class="btn btn-primary" id="btnGerarCliente">Gerar Relatório</button>
+                    </div>
+                  </div>
+                  <div id="statsCliente" class="report-stats"></div>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Empresa</th>
+                          <th>Cliente</th>
+                          <th>Vencimento</th>
+                          <th>Situação</th>
+                          <th>Responsável</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tableCliente"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ABA 6: COMPLETO -->
+              <div class="tab-panel" id="tab-completo">
+                <div class="report-card">
+                  <h3>Relatório Completo</h3>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px">
+                    <div class="field">
+                      <label>Ano</label>
+                      <input id="rAno" type="number" min="2020" max="2099">
+                    </div>
+                    <div class="field">
+                      <label>Mês</label>
+                      <select id="rMes">
+                        <option value="">Todos</option>
+                        <option value="1">Janeiro</option>
+                        <option value="2">Fevereiro</option>
+                        <option value="3">Março</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Maio</option>
+                        <option value="6">Junho</option>
+                        <option value="7">Julho</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Setembro</option>
+                        <option value="10">Outubro</option>
+                        <option value="11">Novembro</option>
+                        <option value="12">Dezembro</option>
+                      </select>
+                    </div>
+                    <div style="display:flex;align-items:flex-end;gap:8px">
+                      <button class="btn btn-primary" id="btnGerarCompleto">Gerar Relatório</button>
+                      <button class="btn btn-ghost" id="btnExportCsv">📥 CSV</button>
+                      <button class="btn btn-ghost" id="btnExportPdf">📥 PDF</button>
+                    </div>
+                  </div>
+                  <div id="statsCompleto" class="report-stats"></div>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Empresa</th>
+                          <th>Tipo</th>
+                          <th>Emissão</th>
+                          <th>Vencimento</th>
+                          <th>Situação</th>
+                          <th>Financeiro</th>
+                          <th>Responsável</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tableCompleto"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <!-- AGENDA -->
+        <section class="page" id="page-agenda">
+          <section class="section">
+            <div class="section-head">
+              <div>
+                <h2>Agenda de renovações</h2>
+                <div class="meta">Compromissos e contatos programados</div>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="table-wrap">
+                <table style="min-width:900px">
+                  <thead>
+                    <tr>
+                      <th>Empresa</th>
+                      <th>Agendamento</th>
+                      <th>Situação</th>
+                      <th>Responsável</th>
+                      <th>Observações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="agendaLargeTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <!-- HISTÓRICO -->
+        <section class="page" id="page-historico">
+          <section class="section">
+            <div class="section-head">
+              <div>
+                <h2>Histórico de atividades</h2>
+                <div class="meta">Mudanças, contatos e eventos por certificado</div>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="timeline" id="historyTimeline"></div>
+            </div>
+          </section>
+        </section>
+
+        <!-- SEGURANÇA -->
+        <section class="page" id="page-seguranca">
+          <section class="section">
+            <div class="section-head">
+              <div>
+                <h2>Segurança e criptografia local</h2>
+                <div class="meta">Estrutura preparada para senha mestra e Web Crypto API</div>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="note">
+                Em front-end puro, a proteção real depende de criptografia local, redução de exposição de senha e armazenamento seguro no navegador.
+              </div>
+              <div class="details-grid">
+                <div class="details-box">
+                  <h4>Configuração de senha mestra</h4>
+                  <div class="form-grid" style="grid-template-columns:1fr 1fr">
+                    <div class="field">
+                      <label>Senha mestra</label>
+                      <input id="masterPass" type="password" placeholder="Digite a senha mestra">
+                    </div>
+                    <div class="field">
+                      <label>Confirmar senha mestra</label>
+                      <input id="masterPass2" type="password" placeholder="Confirme a senha mestra">
+                    </div>
+                    <div class="field full">
+                      <label>Máscara de senha</label>
+                      <div class="switch">
+                        <input id="toggleMaskPass" type="checkbox" checked>
+                        <label for="toggleMaskPass">Ocultar senhas por padrão</label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="footer-actions">
+                    <button class="btn btn-primary" id="btnSetMasterPass">Definir senha mestra</button>
+                    <button class="btn btn-ghost" id="btnClearMasterPass">Limpar da sessão</button>
+                  </div>
+                </div>
+                <div class="details-box">
+                  <h4>Recomendações de segurança</h4>
+                  <ul style="line-height:1.8">
+                    <li>Não armazenar senha em texto puro.</li>
+                    <li>Usar PBKDF2 + AES-GCM.</li>
+                    <li>Derivar chave a partir de senha mestra.</li>
+                    <li>Aplicar timeout de sessão.</li>
+                    <li>Limpar memória quando possível.</li>
+                    <li>Planejar migração futura para back-end seguro.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <!-- CONFIGURAÇÕES -->
+        <section class="page" id="page-configuracoes">
+          <section class="section">
+            <div class="section-head">
+              <div>
+                <h2>Configurações da interface</h2>
+                <div class="meta">Preferências visuais e parâmetros operacionais</div>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="details-grid">
+                <div class="details-box">
+                  <h4>Alertas e notificações</h4>
+                  <label class="switch"><input type="checkbox" checked> Alertar vencimento em 7 dias</label>
+                  <label class="switch"><input type="checkbox" checked> Alertar vencimento em 15 dias</label>
+                  <label class="switch"><input type="checkbox" checked> Alertar pagamento em aberto</label>
+                  <label class="switch"><input type="checkbox" checked> Alertar agendamentos próximos</label>
+                </div>
+                <div class="details-box">
+                  <h4>Preferências visuais</h4>
+                  <label class="switch"><input type="checkbox" id="toggleAutoTheme"> Modo escuro automático</label>
+                  <label class="switch"><input type="checkbox" id="toggleCompactMode"> Modo compacto da interface</label>
+                  <label class="switch"><input type="checkbox" id="toggleHighContrast"> Alto contraste</label>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+      </section>
+      <div class="footer">
+        SCONT Soluções Contábeis • protótipo front-end unificado • pronto para evolução futura.
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL CERTIFICADO -->
+  <div class="modal" id="certModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <strong id="certModalTitle">Novo certificado</strong>
+        <button class="btn btn-ghost" id="closeCertModal">Fechar</button>
+      </div>
+      <div class="modal-body">
+        <form id="certForm">
+          <input type="hidden" id="certId">
+          <div class="form-grid">
+            <div class="field">
+              <label>Empresa *</label>
+              <input id="empresa" required>
+            </div>
+            <div class="field">
+              <label>CPF/CNPJ</label>
+              <input id="cpfcnpj">
+            </div>
+            <div class="field">
+              <label>Tipo *</label>
+              <select id="tipo" required>
+                <option value="">Selecione</option>
+                <option>A1</option>
+                <option>A3</option>
+                <option>e-CNPJ</option>
+                <option>e-CPF</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Autoridade certificadora</label>
+              <input id="autoridade">
+            </div>
+            <div class="field">
+              <label>Data de emissão</label>
+              <input id="emissao" type="date">
+            </div>
+            <div class="field">
+              <label>Data de vencimento *</label>
+              <input id="vencimento" type="date" required>
+            </div>
+            <div class="field">
+              <label>Senha *</label>
+              <input id="senha" type="password" required>
+            </div>
+            <div class="field">
+              <label>Situação *</label>
+              <select id="situacao" required>
+                <option>Ativo</option>
+                <option>Agendado</option>
+                <option>Renovado</option>
+                <option>Aguardando Contato</option>
+                <option>Vencido</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Data de agendamento</label>
+              <input id="agendamento" type="date">
+            </div>
+            <div class="field">
+              <label>Cliente</label>
+              <input id="cliente" value="Recorrente">
+            </div>
+            <div class="field">
+              <label>Situação financeira</label>
+              <select id="financeiro">
+                <option>Pago</option>
+                <option>Em Aberto</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Forma de pagamento</label>
+              <input id="pagamento">
+            </div>
+            <div class="field">
+              <label>Responsável interno</label>
+              <input id="responsavel">
+            </div>
+            <div class="field">
+              <label>Contato principal</label>
+              <input id="contato">
+            </div>
+            <div class="field">
+              <label>E-mail</label>
+              <input id="email" type="email">
+            </div>
+            <div class="field">
+              <label>Telefone</label>
+              <input id="telefone">
+            </div>
+            <div class="field">
+              <label>Canal preferencial</label>
+              <select id="canal">
+                <option>Email</option>
+                <option>Telefone</option>
+                <option>WhatsApp</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Prioridade</label>
+              <select id="prioridade">
+                <option>Baixa</option>
+                <option>Média</option>
+                <option>Alta</option>
+                <option>Crítica</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Status do contato</label>
+              <select id="statusContato">
+                <option>Não Contatado</option>
+                <option>Contatado</option>
+                <option>Confirmado</option>
+                <option>Recusado</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Renovação automática</label>
+              <div class="switch">
+                <input id="autoRenew" type="checkbox">
+                <span>Ativar</span>
+              </div>
+            </div>
+            <div class="field full">
+              <label>Arquivo do certificado (opcional)</label>
+              <input id="arquivoCert" type="file" accept=".pfx,.p12,.pem,.cer,.crt,.key">
+              <small>Formatos aceitos: PFX, P12, PEM, CER, CRT, KEY</small>
+            </div>
+            <div class="field full">
+              <label>Informações adicionais</label>
+              <textarea id="info"></textarea>
+            </div>
+            <div class="field full">
+              <label>Observação de risco</label>
+              <textarea id="risco"></textarea>
+            </div>
+          </div>
+          <div class="footer-actions">
+            <button type="button" class="btn btn-ghost" id="cancelCert">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar certificado</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETALHES -->
+  <div class="modal" id="detailsModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <strong>Detalhes do certificado</strong>
+        <button class="btn btn-ghost" id="closeDetailsModal">Fechar</button>
+      </div>
+      <div class="modal-body">
+        <div class="details-grid">
+          <div class="details-box">
+            <h4>Informações principais</h4>
+            <div class="kv" id="detailsKv"></div>
+          </div>
+          <div class="details-box">
+            <h4>Senha e segurança</h4>
+            <div class="note">
+              A senha é mantida em estrutura preparada para criptografia local.
+            </div>
+            <div class="field">
+              <label>Senha</label>
+              <input id="detailPassword" type="password" readonly>
+            </div>
+            <div class="footer-actions">
+              <button class="btn btn-secondary" id="toggleDetailPass">Mostrar/ocultar</button>
+              <button class="btn btn-ghost" id="editFromDetails">Editar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===========================
+    // CONFIGURAÇÃO SUPABASE
+    // ===========================
+    const SUPABASE_URL = "https://graxaoomeffhsazuzkvg.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyYXhhb29tZWZmaHNhenV6a3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTUxMDUsImV4cCI6MjA5MDI5MTEwNX0.ZpbVoNVS4momTyf7NME4mcYuI4oCQUvNFSDbORCHktI";
+    const TABLE_NAME = "certificados";
+    const BUCKET_NAME = "Certificados";
+    const { createClient } = supabase;
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ===========================
+    // DADOS E ESTADO
+    // ===========================
+    const today = new Date();
+    const appToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const pageMap = {
+      dashboard: ['Dashboard', 'Visão geral operacional da carteira'],
+      certificados: ['Certificados', 'Gestão, filtros, paginação e ações rápidas'],
+      relatorios: ['Relatórios', 'Análise avançada com múltiplos filtros'],
+      agenda: ['Agenda', 'Compromissos e renovações'],
+      historico: ['Histórico', 'Linha do tempo de alterações'],
+      seguranca: ['Segurança', 'Criptografia local e senha mestra'],
+      configuracoes: ['Configurações', 'Preferências visuais e parâmetros operacionais']
+    };
+
+    let certificates = [];
+    let historyLog = [];
+    let currentPage = 1;
+    const pageSize = 8;
+    let sortKey = 'empresa';
+    let sortDir = 'asc';
+    let isConnected = false;
+
+    // ===========================
+    // UTILITÁRIOS
+    // ===========================
+    const q = (sel) => document.querySelector(sel);
+    const qa = (sel) => document.querySelectorAll(sel);
+
+    function toISODate(d) {
+      return new Date(d).toISOString().split('T')[0];
+    }
+
+    function fmt(dateStr) {
+      if (!dateStr) return '-';
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('pt-BR');
+    }
+
+    function daysLeft(dateStr) {
+      if (!dateStr) return 999;
+      const d = new Date(dateStr + 'T00:00:00');
+      const diff = d - appToday;
+      return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    }
+
+    function statusVisual(cert) {
+      const left = daysLeft(cert.vencimento);
+      if (left < 0) return 'Vencido';
+      if (left <= 7) return 'Crítico';
+      if (left <= 30) return 'Atenção';
+      return 'OK';
+    }
+
+    function badgeClass(status) {
+      if (!status) return 'badge neutral';
+      if (status.includes('Ativo') || status === 'Pago' || status === 'OK') return 'badge success';
+      if (status.includes('Vencido') || status === 'Em Aberto' || status === 'Crítico') return 'badge danger';
+      if (status.includes('Agendado') || status === 'Atenção') return 'badge warning';
+      return 'badge info';
+    }
+
+    function rowClass(cert) {
+      const left = daysLeft(cert.vencimento);
+      if (left < 0) return 'danger-row';
+      if (left <= 7) return 'warning-row';
+      return '';
+    }
+
+    function updateConnectionStatus(connected) {
+      isConnected = connected;
+      const statusEl = q('#statusConnection');
+      if (connected) {
+        statusEl.innerHTML = '<span class="status-badge connected">🟢 Conectado</span>';
+        console.log('✅ Status: Conectado ao Supabase');
+      } else {
+        statusEl.innerHTML = '<span class="status-badge disconnected">🔴 Desconectado</span>';
+        console.log('❌ Status: Desconectado do Supabase');
+      }
+    }
+
+    // ===========================
+    // CÁLCULO AUTOMÁTICO DE DATAS
+    // ===========================
+    function calcularDataVencimento(dataEmissao) {
+      if (!dataEmissao) return '';
+      const d = new Date(dataEmissao + 'T00:00:00');
+      d.setFullYear(d.getFullYear() + 1);
+      return toISODate(d);
+    }
+
+    function calcularDataEmissao(dataVencimento) {
+      if (!dataVencimento) return '';
+      const d = new Date(dataVencimento + 'T00:00:00');
+      d.setFullYear(d.getFullYear() - 1);
+      return toISODate(d);
+    }
+
+    q('#emissao').addEventListener('change', () => {
+      const emissao = q('#emissao').value;
+      if (emissao) {
+        q('#vencimento').value = calcularDataVencimento(emissao);
+      }
+    });
+
+    q('#vencimento').addEventListener('change', () => {
+      const vencimento = q('#vencimento').value;
+      if (vencimento && !q('#emissao').value) {
+        q('#emissao').value = calcularDataEmissao(vencimento);
+      }
+    });
+
+    // ===========================
+    // UPLOAD DE ARQUIVO COM LOGS
+    // ===========================
+    async function uploadCertificateFile(file, certId) {
+      if (!file) {
+        console.log('❌ Nenhum arquivo selecionado');
+        return { file_path: null, file_name: null };
+      }
+      
+      try {
+        console.log('📤 Iniciando upload do arquivo:', file.name);
+        console.log('📦 Tamanho do arquivo:', (file.size / 1024).toFixed(2), 'KB');
+        console.log('🆔 ID do certificado:', certId);
+        console.log('🪣 Bucket:', BUCKET_NAME);
+
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substring(2, 8);
+        const fileName = `${certId}_${timestamp}_${randomId}_${file.name}`;
+        const filePath = `certificados/${fileName}`;
+
+        console.log('📁 Caminho do arquivo:', filePath);
+
+        const { data, error } = await client.storage
+          .from(BUCKET_NAME)
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false,
+            contentType: file.type || 'application/octet-stream'
+          });
+
+        if (error) {
+          console.error('❌ Erro no upload:', error);
+          console.error('Código do erro:', error.code);
+          console.error('Mensagem:', error.message);
+          throw new Error(`Erro ao fazer upload: ${error.message}`);
+        }
+
+        console.log('✅ Arquivo enviado com sucesso!');
+        console.log('📍 Caminho salvo:', filePath);
+        console.log('📄 Nome do arquivo:', file.name);
+
+        return { file_path: filePath, file_name: file.name };
+      } catch (err) {
+        console.error('❌ Erro ao fazer upload do arquivo:', err);
+        throw err;
+      }
+    }
+
+    // ===========================
+    // DELETAR ARQUIVO DO BUCKET
+    // ===========================
+    async function deleteCertificateFile(filePath) {
+      if (!filePath) return;
+      
+      try {
+        console.log('🗑️ Deletando arquivo:', filePath);
+        const { error } = await client.storage
+          .from(BUCKET_NAME)
+          .remove([filePath]);
+
+        if (error) {
+          console.error('❌ Erro ao deletar arquivo:', error);
+          throw error;
+        }
+
+        console.log('✅ Arquivo deletado com sucesso:', filePath);
+      } catch (err) {
+        console.error('❌ Erro ao deletar arquivo:', err);
+      }
+    }
+
+    // ===========================
+    // SUPABASE - OPERAÇÕES
+    // ===========================
+    async function fetchCertificates() {
+      try {
+        console.log('📥 Buscando certificados do banco...');
+        const { data, error } = await client
+          .from(TABLE_NAME)
+          .select('*');
+        if (error) throw error;
+        certificates = data || [];
+        console.log('✅ Certificados carregados:', certificates.length);
+        certificates.forEach(c => {
+          console.log(`  - ${c.empresa} (${c.tipo}) - Arquivo: ${c.file_name ? '✅' : '❌'}`);
+        });
+        refreshAll();
+      } catch (err) {
+        console.error('❌ Erro ao buscar certificados:', err);
+        updateConnectionStatus(false);
+        alert('Erro ao carregar certificados: ' + err.message);
+      }
+    }
+
+    async function saveCertificate(e) {
+      e.preventDefault();
+      const id = q('#certId').value;
+      const file = q('#arquivoCert').files[0] || null;
+      
+      console.log('💾 Iniciando salvamento de certificado...');
+      console.log('🆔 ID:', id || 'NOVO');
+      console.log('📄 Arquivo selecionado:', file ? file.name : 'Nenhum');
+      
+      const payload = {
+        empresa: q('#empresa').value,
+        cpf_cnpj: q('#cpfcnpj').value || null,
+        tipo: q('#tipo').value,
+        autoridade: q('#autoridade').value || null,
+        vencimento: q('#vencimento').value,
+        emissao: q('#emissao').value || toISODate(new Date()),
+        senha: q('#senha').value,
+        situacao: q('#situacao').value,
+        agendamento: q('#agendamento').value || null,
+        cliente: q('#cliente').value || 'Recorrente',
+        financeiro: q('#financeiro').value,
+        pagamento: q('#pagamento').value || null,
+        responsavel: q('#responsavel').value || null,
+        contato: q('#contato').value || null,
+        email: q('#email').value || null,
+        telefone: q('#telefone').value || null,
+        canal: q('#canal').value || 'Email',
+        prioridade: q('#prioridade').value || 'Média',
+        status_contato: q('#statusContato').value || 'Não Contatado',
+        auto_renew: q('#autoRenew').checked,
+        info: q('#info').value || null,
+        risco: q('#risco').value || null,
+        updated_at: new Date().toISOString()
+      };
+
+      try {
+        if (file) {
+          console.log('📤 Arquivo detectado, iniciando upload...');
+          try {
+            const uploaded = await uploadCertificateFile(file, id || 'novo');
+            payload.file_path = uploaded.file_path;
+            payload.file_name = uploaded.file_name;
+            console.log('✅ Upload concluído');
+          } catch (uploadErr) {
+            console.error('❌ Erro no upload:', uploadErr);
+            alert('Erro ao fazer upload do arquivo: ' + uploadErr.message);
+            return;
+          }
+        } else if (id) {
+          console.log('📌 Nenhum arquivo novo, mantendo arquivo existente');
+          const existing = certificates.find(c => c.id === id);
+          if (existing) {
+            payload.file_path = existing.file_path || null;
+            payload.file_name = existing.file_name || null;
+          }
+        }
+
+        if (id) {
+          console.log('🔄 Atualizando certificado no banco...');
+          const { error } = await client
+            .from(TABLE_NAME)
+            .update(payload)
+            .eq('id', id);
+          if (error) throw error;
+          console.log('✅ Certificado atualizado');
+          historyLog.push({
+            date: toISODate(new Date()),
+            type: 'Edição',
+            certId: id,
+            desc: `Certificado ${payload.empresa} atualizado.`
+          });
+        } else {
+          console.log('➕ Inserindo novo certificado no banco...');
+          const newId = 'cert_' + Date.now();
+          const { error } = await client
+            .from(TABLE_NAME)
+            .insert([{ id: newId, ...payload, created_at: new Date().toISOString() }]);
+          if (error) throw error;
+          console.log('✅ Novo certificado inserido com ID:', newId);
+          historyLog.push({
+            date: toISODate(new Date()),
+            type: 'Criação',
+            certId: newId,
+            desc: `Novo certificado criado: ${payload.empresa}.`
+          });
+        }
+
+        closeCertModal();
+        await fetchCertificates();
+        console.log('✅ Certificado salvo com sucesso!');
+        alert('Certificado salvo com sucesso!');
+      } catch (err) {
+        console.error('❌ Erro ao salvar:', err);
+        alert('Erro ao salvar certificado: ' + err.message);
+      }
+    }
+
+    async function removeCert(id) {
+      const c = certificates.find(x => x.id === id);
+      if (!confirm(`Tem certeza que deseja excluir ${c?.empresa}?`)) return;
+      try {
+        console.log('🗑️ Iniciando exclusão do certificado:', id);
+        if (c?.file_path) {
+          await deleteCertificateFile(c.file_path);
+        }
+
+        const { error } = await client
+          .from(TABLE_NAME)
+          .delete()
+          .eq('id', id);
+        if (error) throw error;
+
+        console.log('✅ Certificado excluído com sucesso');
+        historyLog.push({
+          date: toISODate(new Date()),
+          type: 'Exclusão',
+          certId: id,
+          desc: `Registro excluído: ${c?.empresa || 'certificado'}.`
+        });
+        await fetchCertificates();
+        alert('Certificado excluído com sucesso!');
+      } catch (err) {
+        console.error('❌ Erro ao excluir:', err);
+        alert('Erro ao excluir certificado: ' + err.message);
+      }
+    }
+
+    // ===========================
+    // RENDERIZAÇÃO
+    // ===========================
+    function renderDashboard() {
+      const total = certificates.length;
+      const vencidos = certificates.filter(c => daysLeft(c.vencimento) < 0).length;
+      const emAberto = certificates.filter(c => c.financeiro === 'Em Aberto').length;
+      const ativos = certificates.filter(c => c.situacao === 'Ativo').length;
+
+      q('#cards').innerHTML = `
+        <div class="card">
+          <div class="card-label">Total de certificados</div>
+          <div class="card-value">${total}</div>
+          <div class="card-meta">Carteira completa</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Vencidos</div>
+          <div class="card-value" style="color:var(--danger)">${vencidos}</div>
+          <div class="card-meta">Ação imediata</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Pagamentos em aberto</div>
+          <div class="card-value" style="color:var(--warning)">${emAberto}</div>
+          <div class="card-meta">Pendências financeiras</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Certificados ativos</div>
+          <div class="card-value" style="color:var(--success)">${ativos}</div>
+          <div class="card-meta">Em operação</div>
+        </div>
+      `;
+
+      const alerts = certificates
+        .filter(c => daysLeft(c.vencimento) <= 30)
+        .sort((a, b) => daysLeft(a.vencimento) - daysLeft(b.vencimento))
+        .slice(0, 5);
+
+      const alertsHtml = alerts.length ? alerts.map(c => {
+        const left = daysLeft(c.vencimento);
+        const visual = statusVisual(c);
+        return `
+          <tr>
+            <td><strong>${c.empresa}</strong></td>
+            <td>${fmt(c.vencimento)}</td>
+            <td><span class="${badgeClass(c.situacao)}">${c.situacao}</span></td>
+            <td><strong>${left < 0 ? 'VENCIDO' : left + ' dias'}</strong></td>
+          </tr>
+        `;
+      }).join('') : '<tr><td colspan="4"><div class="empty">Nenhum alerta crítico.</div></td></tr>';
+
+      q('#alertsTable').innerHTML = alertsHtml;
+
+      const agenda = certificates
+        .filter(c => c.agendamento)
+        .sort((a, b) => new Date(a.agendamento) - new Date(b.agendamento))
+        .slice(0, 5);
+
+      const agendaHtml = agenda.length ? agenda.map(c => `
+        <tr>
+          <td><strong>${c.empresa}</strong></td>
+          <td>${fmt(c.agendamento)}</td>
+          <td><span class="${badgeClass(c.status_contato)}">${c.status_contato}</span></td>
+        </tr>
+      `).join('') : '<tr><td colspan="3"><div class="empty">Nenhum agendamento próximo.</div></td></tr>';
+
+      q('#agendaTable').innerHTML = agendaHtml;
+
+      const recent = historyLog.slice(-5).reverse();
+      const timelineHtml = recent.length ? recent.map(h => `
+        <div class="timeline-item">
+          <div class="timeline-date">${h.date}</div>
+          <div class="timeline-content">
+            <div class="timeline-type">${h.type}</div>
+            <div class="timeline-desc">${h.desc}</div>
+          </div>
+        </div>
+      `).join('') : '<div class="empty">Nenhuma atividade registrada.</div>';
+
+      q('#timeline').innerHTML = timelineHtml;
+    }
+
+    function getFilteredCertificates() {
+      const global = q('#searchGlobal').value.trim().toLowerCase();
+      const empresa = q('#fEmpresa').value.trim().toLowerCase();
+      const tipo = q('#fTipo').value;
+      const situacao = q('#fSituacao').value;
+      const financeiro = q('#fFinanceiro').value;
+
+      const list = certificates.filter(c => {
+        const hay = Object.values(c).join(' ').toLowerCase();
+        return (!global || hay.includes(global))
+          && (!empresa || c.empresa.toLowerCase().includes(empresa))
+          && (!tipo || c.tipo === tipo)
+          && (!situacao || c.situacao === situacao)
+          && (!financeiro || c.financeiro === financeiro);
+      });
+
+      list.sort((a, b) => {
+        let va = a[sortKey] ?? '';
+        let vb = b[sortKey] ?? '';
+        if (sortKey.includes('data')) {
+          va = va ? new Date(va) : new Date(0);
+          vb = vb ? new Date(vb) : new Date(0);
+        } else {
+          va = String(va).toLowerCase();
+          vb = String(vb).toLowerCase();
+        }
+        if (va < vb) return sortDir === 'asc' ? -1 : 1;
+        if (va > vb) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      return list;
+    }
+
+    function renderCertTable() {
+      const list = getFilteredCertificates();
+      const totalPages = Math.ceil(list.length / pageSize);
+      const start = (currentPage - 1) * pageSize;
+      const slice = list.slice(start, start + pageSize);
+
+      q('#pageInfo').textContent = `Página ${currentPage} de ${totalPages} • ${list.length} registro(s)`;
+
+      const tbody = q('#certTable');
+      if (!slice.length) {
+        tbody.innerHTML = `<tr><td colspan="11"><div class="empty">Nenhum certificado encontrado com os filtros aplicados.</div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = slice.map(c => {
+        const left = daysLeft(c.vencimento);
+        const visual = statusVisual(c);
+        const hasFile = c.file_path ? '📎' : '-';
+        return `
+          <tr class="${rowClass(c)}">
+            <td><strong>${c.empresa}</strong><br><span class="muted" style="font-size:12px">${c.cpf_cnpj || '-'}</span></td>
+            <td>${c.tipo}</td>
+            <td><span class="${badgeClass(visual)}">${fmt(c.vencimento)} • ${visual}</span></td>
+            <td>${fmt(c.emissao)}</td>
+            <td><span class="${badgeClass(c.situacao)}">${c.situacao}</span></td>
+            <td>${fmt(c.agendamento)}</td>
+            <td>${c.cliente}</td>
+            <td><span class="${badgeClass(c.financeiro)}">${c.financeiro}</span></td>
+            <td>${c.pagamento || '-'}</td>
+            <td style="text-align:center">${hasFile}</td>
+            <td style="display:flex;gap:6px">
+              <button class="btn btn-ghost" style="padding:6px 8px;font-size:12px" onclick="openDetails('${c.id}')">Ver</button>
+              <button class="btn btn-ghost" style="padding:6px 8px;font-size:12px" onclick="openCertModal('${c.id}')">Editar</button>
+              <button class="btn btn-ghost" style="padding:6px 8px;font-size:12px;color:var(--danger)" onclick="removeCert('${c.id}')">Excluir</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      q('#prevPage').disabled = currentPage === 1;
+      q('#nextPage').disabled = currentPage === totalPages;
+    }
+
+    // ===========================
+    // RELATÓRIOS
+    // ===========================
+    function gerarEstatisticas(lista) {
+      const total = lista.length;
+      const ativos = lista.filter(c => c.situacao === 'Ativo').length;
+      const vencidos = lista.filter(c => daysLeft(c.vencimento) < 0).length;
+      const emAberto = lista.filter(c => c.financeiro === 'Em Aberto').length;
+      
+      return `
+        <div class="report-stat">
+          <div class="report-stat-value">${total}</div>
+          <div class="report-stat-label">Total</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-value" style="color:var(--success)">${ativos}</div>
+          <div class="report-stat-label">Ativos</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-value" style="color:var(--danger)">${vencidos}</div>
+          <div class="report-stat-label">Vencidos</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-value" style="color:var(--warning)">${emAberto}</div>
+          <div class="report-stat-label">Em Aberto</div>
+        </div>
+      `;
+    }
+
+    // Relatório de Vencimento
+    q('#btnGerarVencimento').addEventListener('click', () => {
+      const dias = parseInt(q('#diasVencimento').value) || 30;
+      const periodo = q('#periodoVencimento').value;
+      
+      let lista = certificates;
+      
+      if (periodo === '-1') {
+        lista = certificates.filter(c => daysLeft(c.vencimento) < 0);
+      } else if (periodo) {
+        const d = parseInt(periodo);
+        lista = certificates.filter(c => {
+          const left = daysLeft(c.vencimento);
+          return left >= 0 && left <= d;
+        });
+      } else {
+        lista = certificates.filter(c => {
+          const left = daysLeft(c.vencimento);
+          return left >= 0 && left <= dias;
+        });
+      }
+
+      q('#statsVencimento').innerHTML = gerarEstatisticas(lista);
+      q('#tableVencimento').innerHTML = lista.length ? lista.map(c => `
+        <tr>
+          <td><strong>${c.empresa}</strong></td>
+          <td>${fmt(c.vencimento)}</td>
+          <td><strong>${daysLeft(c.vencimento)} dias</strong></td>
+          <td><span class="${badgeClass(c.situacao)}">${c.situacao}</span></td>
+          <td>${c.responsavel || '-'}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="5"><div class="empty">Nenhum certificado encontrado.</div></td></tr>';
+    });
+
+    // Relatório Financeiro
+    q('#btnGerarFinanceiro').addEventListener('click', () => {
+      const filtro = q('#filtroFinanceiro').value;
+      let lista = certificates;
+      
+      if (filtro) {
+        lista = certificates.filter(c => c.financeiro === filtro);
+      }
+
+      q('#statsFinanceiro').innerHTML = gerarEstatisticas(lista);
+      q('#tableFinanceiro').innerHTML = lista.length ? lista.map(c => `
+        <tr>
+          <td><strong>${c.empresa}</strong></td>
+          <td>${fmt(c.vencimento)}</td>
+          <td><span class="${badgeClass(c.financeiro)}">${c.financeiro}</span></td>
+          <td>${c.pagamento || '-'}</td>
+          <td>${c.responsavel || '-'}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="5"><div class="empty">Nenhum certificado encontrado.</div></td></tr>';
+    });
+
+    // Relatório de Situação
+    q('#btnGerarSituacao').addEventListener('click', () => {
+      const filtro = q('#filtroSituacao').value;
+      let lista = certificates;
+      
+      if (filtro) {
+        lista = certificates.filter(c => c.situacao === filtro);
+      }
+
+      q('#statsSituacao').innerHTML = gerarEstatisticas(lista);
+      q('#tableSituacao').innerHTML = lista.length ? lista.map(c => `
+        <tr>
+          <td><strong>${c.empresa}</strong></td>
+          <td><span class="${badgeClass(c.situacao)}">${c.situacao}</span></td>
+          <td>${fmt(c.vencimento)}</td>
+          <td>${c.tipo}</td>
+          <td>${c.responsavel || '-'}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="5"><div class="empty">Nenhum certificado encontrado.</div></td></tr>';
+    });
+
+    // Relatório por Tipo
+    q('#btnGerarTipo').addEventListener('click', () => {
+      const filtro = q('#filtroTipo').value;
+      let lista = certificates;
+      
+      if (filtro) {
+        lista = certificates.filter(c => c.tipo === filtro);
+      }
+
+      q('#statsTipo').innerHTML = gerarEstatisticas(lista);
+      q('#tableTipo').innerHTML = lista.length ? lista.map(c => `
+        <tr>
+          <td><strong>${c.empresa}</strong></td>
+          <td>${c.tipo}</td>
+          <td>${fmt(c.vencimento)}</td>
+          <td><span class="${badgeClass(c.situacao)}">${c.situacao}</span></td>
+          <td>${c.responsavel || '-'}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="5"><div class="empty">Nenhum certificado encontrado.</div></td></tr>';
+    });
+
+    // Relatório por Cliente
+    q('#btnGerarCliente').addEventListener('click', () => {
+      const filtro = q('#filtroCliente').value;
+      let lista = certificates;
+      
+      if (filtro) {
+        lista = certificates.filter(c => c.cliente === filtro);
+      }
+
+      q('#statsCliente').innerHTML = gerarEstatisticas(lista);
+      q('#tableCliente').innerHTML = lista.length ? lista.map(c => `
+        <tr>
+          <td><strong>${c.empresa}</strong></td>
+          <td>${c.cliente}</td>
+          <td>${fmt(c.vencimento)}</td>
+          <td><span class="${badgeClass(c.situacao)}">${c.situacao}</span></td>
+          <td>${c.responsavel || '-'}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="5"><div class="empty">Nenhum certificado encontrado.</div></td></tr>';
+    });
+
+    // Relatório Completo
+    q('#btnGerarCompleto').addEventListener('click', () => {
+      const ano = parseInt(q('#rAno').value) || new Date().getFullYear();
+      const mes = q('#rMes').value;
+
+      let lista = certificates.filter(c => {
+        const d = new Date(c.vencimento + 'T00:00:00');
+        const matchAno = d.getFullYear() === ano;
+        const matchMes = !mes || (d.getMonth() + 1) === parseInt(mes);
+        return matchAno && matchMes;
+      });
+
+      q('#statsCompleto').innerHTML = gerarEstatisticas(lista);
+      q('#tableCompleto').innerHTML = lista.length ? lista.map(c => `
+        <tr>
+          <td><strong>${c.empresa}</strong></td>
+          <td>${c.tipo}</td>
+          <td>${fmt(c.emissao)}</td>
+          <td>${fmt(c.vencimento)}</td>
+          <td><span class="${badgeClass(c.situacao)}">${c.situacao}</span></td>
+          <td><span class="${badgeClass(c.financeiro)}">${c.financeiro}</span></td>
+          <td>${c.responsavel || '-'}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="7"><div class="empty">Nenhum certificado encontrado.</div></td></tr>';
+    });
+
+    q('#btnExportCsv').addEventListener('click', () => alert('Exportação CSV preparada.'));
+    q('#btnExportPdf').addEventListener('click', () => alert('Exportação PDF preparada.'));
+
+    // ===========================
+    // ABAS DE RELATÓRIOS
+    // ===========================
+    qa('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        qa('.tab-btn').forEach(b => b.classList.remove('active'));
+        qa('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        q('#' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    function renderAgendaLarge() {
+      const agenda = certificates
+        .filter(c => c.agendamento)
+        .sort((a, b) => new Date(a.agendamento) - new Date(b.agendamento));
+
+      const tbody = q('#agendaLargeTable');
+      if (!agenda.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty">Nenhum agendamento registrado.</div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = agenda.map(c => `
+        <tr>
+          <td><strong>${c.empresa}</strong></td>
+          <td>${fmt(c.agendamento)}</td>
+          <td><span class="${badgeClass(c.situacao)}">${c.situacao}</span></td>
+          <td>${c.responsavel || '-'}</td>
+          <td>${c.info || '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderHistory() {
+      const timelineHtml = historyLog.length ? historyLog.slice().reverse().map(h => `
+        <div class="timeline-item">
+          <div class="timeline-date">${h.date}</div>
+          <div class="timeline-content">
+            <div class="timeline-type">${h.type}</div>
+            <div class="timeline-desc">${h.desc}</div>
+          </div>
+        </div>
+      `).join('') : '<div class="empty">Nenhuma atividade registrada.</div>';
+
+      q('#historyTimeline').innerHTML = timelineHtml;
+    }
+
+    function renderSecurityState() {
+      // Estrutura reservada para futura criptografia real
+    }
+
+    function refreshAll() {
+      renderDashboard();
+      renderCertTable();
+      renderAgendaLarge();
+      renderHistory();
+      q('#notifBtn').dataset.count = String(
+        certificates.filter(c => daysLeft(c.vencimento) <= 0).length +
+        certificates.filter(c => c.financeiro === 'Em Aberto').length
+      );
+    }
+
+    // ===========================
+    // MODAL DE CERTIFICADO
+    // ===========================
+    const certModal = q('#certModal');
+    const certForm = q('#certForm');
+
+    function openCertModal(id = null) {
+      certForm.reset();
+      q('#certId').value = '';
+      q('#arquivoCert').value = '';
+      q('#certModalTitle').textContent = id ? 'Editar certificado' : 'Novo certificado';
+
+      if (id) {
+        const c = certificates.find(x => x.id === id);
+        if (!c) return;
+        q('#certId').value = c.id;
+        q('#empresa').value = c.empresa;
+        q('#cpfcnpj').value = c.cpf_cnpj || '';
+        q('#tipo').value = c.tipo;
+        q('#autoridade').value = c.autoridade || '';
+        q('#vencimento').value = c.vencimento;
+        q('#emissao').value = c.emissao;
+        q('#senha').value = c.senha || '';
+        q('#situacao').value = c.situacao;
+        q('#agendamento').value = c.agendamento || '';
+        q('#cliente').value = c.cliente || 'Recorrente';
+        q('#financeiro').value = c.financeiro || 'Em Aberto';
+        q('#pagamento').value = c.pagamento || '';
+        q('#responsavel').value = c.responsavel || '';
+        q('#contato').value = c.contato || '';
+        q('#email').value = c.email || '';
+        q('#telefone').value = c.telefone || '';
+        q('#canal').value = c.canal || 'Email';
+        q('#prioridade').value = c.prioridade || 'Média';
+        q('#statusContato').value = c.status_contato || 'Não Contatado';
+        q('#autoRenew').checked = !!c.auto_renew;
+        q('#info').value = c.info || '';
+        q('#risco').value = c.risco || '';
+
+        if (c.file_name) {
+          const fileInfo = document.createElement('div');
+          fileInfo.style.cssText = 'margin-top:8px;padding:8px;background:var(--bg-soft);border-radius:6px;font-size:12px;color:var(--muted)';
+          fileInfo.innerHTML = `📎 Arquivo atual: <strong>${c.file_name}</strong><br><small>Selecione um novo arquivo para substituir</small>`;
+          q('#arquivoCert').parentElement.appendChild(fileInfo);
+        }
+      }
+      certModal.classList.add('open');
+    }
+
+    function closeCertModal() {
+      certModal.classList.remove('open');
+    }
+
+    q('#btnNewCert').addEventListener('click', () => openCertModal());
+    q('#closeCertModal').addEventListener('click', closeCertModal);
+    q('#cancelCert').addEventListener('click', closeCertModal);
+    certForm.addEventListener('submit', saveCertificate);
+
+    // ===========================
+    // MODAL DETALHES
+    // ===========================
+    const detailsModal = q('#detailsModal');
+
+    function openDetails(id) {
+      const c = certificates.find(x => x.id === id);
+      if (!c) return;
+
+      const kvHtml = `
+        <div>Empresa</div><div><strong>${c.empresa}</strong></div>
+        <div>CPF/CNPJ</div><div>${c.cpf_cnpj || '-'}</div>
+        <div>Tipo</div><div>${c.tipo}</div>
+        <div>Autoridade</div><div>${c.autoridade || '-'}</div>
+        <div>Vencimento</div><div>${fmt(c.vencimento)}</div>
+        <div>Emissão</div><div>${fmt(c.emissao)}</div>
+        <div>Situação</div><div><span class="${badgeClass(c.situacao)}">${c.situacao}</span></div>
+        <div>Agendamento</div><div>${fmt(c.agendamento)}</div>
+        <div>Cliente</div><div>${c.cliente}</div>
+        <div>Financeiro</div><div><span class="${badgeClass(c.financeiro)}">${c.financeiro}</span></div>
+        <div>Responsável</div><div>${c.responsavel || '-'}</div>
+        <div>Contato</div><div>${c.contato || '-'}</div>
+        <div>Email</div><div>${c.email || '-'}</div>
+        <div>Telefone</div><div>${c.telefone || '-'}</div>
+      `;
+
+      q('#detailsKv').innerHTML = kvHtml;
+      q('#detailPassword').value = c.senha || '';
+      detailsModal.classList.add('open');
+    }
+
+    q('#closeDetailsModal').addEventListener('click', () => detailsModal.classList.remove('open'));
+    q('#toggleDetailPass').addEventListener('click', () => {
+      const input = q('#detailPassword');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    });
+    q('#editFromDetails').addEventListener('click', () => {
+      const certId = certificates.find(c => c.senha === q('#detailPassword').value)?.id;
+      if (certId) {
+        detailsModal.classList.remove('open');
+        openCertModal(certId);
+      }
+    });
+
+    // ===========================
+    // NAVEGAÇÃO
+    // ===========================
+    function setPage(pageId) {
+      qa('.page').forEach(p => p.classList.remove('active'));
+      q('#page-' + pageId).classList.add('active');
+      qa('.nav button').forEach(b => b.classList.toggle('active', b.dataset.page === pageId));
+      q('#pageTitle').textContent = pageMap[pageId][0];
+      q('#pageSubtitle').textContent = pageMap[pageId][1];
+      if (pageId === 'dashboard') renderDashboard();
+      if (pageId === 'certificados') renderCertTable();
+      if (pageId === 'agenda') renderAgendaLarge();
+      if (pageId === 'historico') renderHistory();
+      if (pageId === 'seguranca') renderSecurityState();
+    }
+
+    qa('.nav button').forEach(btn => {
+      btn.addEventListener('click', () => setPage(btn.dataset.page));
+    });
+
+    // ===========================
+    // SIDEBAR
+    // ===========================
+    function toggleSidebar() {
+      q('#app').classList.toggle('sidebar-collapsed');
+    }
+
+    q('#menuToggle').addEventListener('click', toggleSidebar);
+    q('#sidebarCollapseBtn').addEventListener('click', toggleSidebar);
+
+    // ===========================
+    // FILTROS / ORDENAÇÃO / PAGINAÇÃO
+    // ===========================
+    function applyFilters() {
+      currentPage = 1;
+      renderCertTable();
+    }
+
+    q('#btnApplyFilters').addEventListener('click', applyFilters);
+    q('#btnResetFilters').addEventListener('click', () => {
+      q('#fEmpresa').value = '';
+      q('#fTipo').value = '';
+      q('#fSituacao').value = '';
+      q('#fFinanceiro').value = '';
+      currentPage = 1;
+      renderCertTable();
+    });
+
+    q('#prevPage').addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderCertTable();
+      }
+    });
+
+    q('#nextPage').addEventListener('click', () => {
+      const list = getFilteredCertificates();
+      const totalPages = Math.ceil(list.length / pageSize);
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderCertTable();
+      }
+    });
+
+    // ===========================
+    // TEMA (DEFAULT CLARO)
+    // ===========================
+    function applyTheme() {
+      if (q('#toggleAutoTheme').checked) {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.dataset.theme = prefersDark ? 'dark' : 'light';
+        q('#themeLabel').textContent = prefersDark ? 'Tema escuro automático' : 'Tema claro automático';
+      } else {
+        document.documentElement.dataset.theme = 'light';
+        q('#themeLabel').textContent = 'Tema claro';
+      }
+    }
+
+    q('#toggleAutoTheme').addEventListener('change', applyTheme);
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyTheme);
+
+    // ===========================
+    // SEGURANÇA
+    // ===========================
+    q('#btnSetMasterPass').addEventListener('click', () => {
+      const pass1 = q('#masterPass').value;
+      const pass2 = q('#masterPass2').value;
+      if (!pass1 || !pass2) {
+        alert('Preencha ambos os campos.');
+        return;
+      }
+      if (pass1 !== pass2) {
+        alert('As senhas não coincidem.');
+        return;
+      }
+      sessionStorage.setItem('masterPass', pass1);
+      q('#masterPass').value = '';
+      q('#masterPass2').value = '';
+      alert('Senha mestra definida para esta sessão.');
+    });
+
+    q('#btnClearMasterPass').addEventListener('click', () => {
+      sessionStorage.removeItem('masterPass');
+      q('#masterPass').value = '';
+      q('#masterPass2').value = '';
+      alert('Senha mestra limpa da sessão.');
+    });
+
+    // ===========================
+    // INICIALIZAÇÃO COM LOGS
+    // ===========================
+    console.log('🚀 Iniciando aplicação SCONT...');
+    console.log('📅 Data:', new Date().toLocaleString('pt-BR'));
+    console.log('🔗 URL Supabase:', SUPABASE_URL);
+    console.log('🪣 Bucket:', BUCKET_NAME);
+    console.log('📊 Tabela:', TABLE_NAME);
+
+    async function testSupabaseConnection() {
+      try {
+        console.log('🔄 Testando conexão com Supabase...');
+        const { data, error } = await client.from(TABLE_NAME).select('count', { count: 'exact' });
+        
+        if (error) {
+          console.error('❌ Erro na conexão:', error);
+          updateConnectionStatus(false);
+          alert('❌ Erro ao conectar com Supabase: ' + error.message);
+          return false;
+        }
+        
+        console.log('✅ Conexão com Supabase estabelecida!');
+        console.log('📊 Total de certificados no banco:', data?.length || 0);
+        updateConnectionStatus(true);
+        return true;
+      } catch (err) {
+        console.error('❌ Erro ao testar conexão:', err);
+        updateConnectionStatus(false);
+        return false;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      console.log('📄 DOM carregado');
+      
+      const connected = await testSupabaseConnection();
+      
+      if (!connected) {
+        console.error('❌ Falha na conexão com Supabase');
+        return;
+      }
+
+      console.log('⚙️ Aplicando tema...');
+      q('#rAno').value = new Date().getFullYear();
+      applyTheme();
+      
+      console.log('📥 Carregando certificados...');
+      await fetchCertificates();
+      
+      console.log('🏠 Navegando para dashboard...');
+      setPage('dashboard');
+      
+      console.log('✅ Aplicação iniciada com sucesso!');
+    });
+
+    window.openDetails = openDetails;
+    window.openCertModal = openCertModal;
+    window.removeCert = removeCert;
+  </script>
+</body>
+</html>
