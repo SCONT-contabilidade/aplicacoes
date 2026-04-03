@@ -175,7 +175,7 @@ async function handleRegistro(e) {
         }
         
         console.log('✅ Conta criada com sucesso!');
-        mostrarMensagem('Sucesso', 'Conta criada! Você pode fazer login agora.');
+        mostrarMensagem('Sucesso', 'Conta criada! Confirme seu email através do link encaminhado para sua conta.');
         
         document.getElementById('registroForm').reset();
         
@@ -190,7 +190,7 @@ async function handleRegistro(e) {
 }
 
 // ============================================
-// AUTENTICAÇÃO - LOGOUT
+// AUTENTICAÇÃO - LOGOUT (CORRIGIDO)
 // ============================================
 async function fazerLogout() {
     mostrarConfirmacao(
@@ -198,25 +198,61 @@ async function fazerLogout() {
         'Deseja sair do sistema?',
         async () => {
             try {
+                console.log('🔄 Iniciando logout...');
+                
+                // Fazer logout no Supabase
                 const { error } = await supabaseClient.auth.signOut();
                 
                 if (error) {
                     console.error('❌ Erro ao sair:', error.message);
+                    mostrarMensagem('Erro', 'Erro ao fazer logout: ' + error.message);
                     return;
                 }
                 
-                console.log('✅ Logout realizado');
+                console.log('✅ Logout realizado com sucesso');
+                
+                // Limpar estado global
+                state.usuarioAutenticado = false;
+                state.usuarioId = null;
+                state.usuarioEmail = null;
                 state.folhas = [];
                 state.abaSelecionada = 0;
+                state.competencia = '';
+                state.codigoEmpresa = '';
+                
+                // Parar auto-save
                 pararAutoSave();
+                
+                // Limpar header
+                const headerActions = document.getElementById('headerActions');
+                if (headerActions) {
+                    headerActions.innerHTML = '';
+                }
+                
+                // Limpar formulário inicial
+                const initialForm = document.getElementById('initialForm');
+                if (initialForm) {
+                    initialForm.reset();
+                }
+                
+                // Mostrar tela de login
+                mostrarTela('loginScreen');
+                
+                // Limpar campos de login
+                const loginForm = document.getElementById('loginForm');
+                if (loginForm) {
+                    loginForm.reset();
+                }
+                
+                console.log('✅ Tela de login exibida');
                 
             } catch (erro) {
                 console.error('❌ Erro inesperado:', erro);
+                mostrarMensagem('Erro', 'Erro ao fazer logout. Tente novamente.');
             }
         }
     );
 }
-
 // ============================================
 // NAVEGAÇÃO - TELAS DE LOGIN
 // ============================================
@@ -1353,6 +1389,8 @@ function formatarData(valor) {
         return apenasDigitos.substring(0, 2) + '/' + apenasDigitos.substring(2, 4) + '/' + apenasDigitos.substring(4, 8);
     }
 }
+
+
 
 // ============================================
 // SALVAMENTO AO SAIR

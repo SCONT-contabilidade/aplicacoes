@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmando Email - SCONT</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 500px;
+            text-align: center;
+        }
+        
+        .logo {
+            max-width: 150px;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .status {
+            margin: 30px 0;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .status.loading {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status.success {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            margin-top: 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #764ba2;
+        }
+        
+        .icon {
+            font-size: 48px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://scontdf.com.br/wp-content/uploads/elementor/thumbs/LogoScont-peic298y16fua1mv1zkur66kgxw0v6rzhu846yyg3k.png" alt="SCONT" class="logo">
+        
+        <h1>Confirmando Email</h1>
+        
+        <div id="status" class="status loading">
+            <span class="spinner"></span>
+            <span id="statusText">Processando confirmação...</span>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://udnikmolgryzczalcbbz.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkbmlrbW9sZ3J5emN6YWxjYmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDQzNTUsImV4cCI6MjA5MDcyMDM1NX0.9vCwDkmxhrLAc-UxKpUxiVHF0BBh8OIdGZPKpTWu-lI';
+        
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        async function confirmarEmail() {
+            try {
+                console.log('🔄 Processando confirmação de email...');
+                
+                // Obter hash da URL
+                const hash = window.location.hash.substring(1);
+                
+                if (!hash) {
+                    mostrarErro('Link inválido ou expirado');
+                    return;
+                }
+                
+                // Verificar se há token na sessão
+                const { data, error } = await supabaseClient.auth.verifyOtp({
+                    token_hash: hash,
+                    type: 'email'
+                });
+                
+                if (error) {
+                    console.error('❌ Erro:', error.message);
+                    mostrarErro('Erro ao confirmar email: ' + error.message);
+                    return;
+                }
+                
+                console.log('✅ Email confirmado com sucesso!');
+                mostrarSucesso('Email confirmado com sucesso!');
+                
+                // Redirecionar para login após 3 segundos
+                setTimeout(() => {
+                    window.location.href = './ponto_eletronico.html';
+                }, 3000);
+                
+            } catch (erro) {
+                console.error('❌ Erro inesperado:', erro);
+                mostrarErro('Erro ao processar confirmação');
+            }
+        }
+        
+        function mostrarSucesso(mensagem) {
+            const status = document.getElementById('status');
+            status.className = 'status success';
+            status.innerHTML = `
+                <div class="icon">✅</div>
+                <strong>${mensagem}</strong>
+                <p style="margin-top: 10px; font-size: 14px;">Redirecionando para login...</p>
+            `;
+        }
+        
+        function mostrarErro(mensagem) {
+            const status = document.getElementById('status');
+            status.className = 'status error';
+            status.innerHTML = `
+                <div class="icon">❌</div>
+                <strong>${mensagem}</strong>
+                <p style="margin-top: 10px; font-size: 14px;">
+                    <a href="./ponto_eletronico.html" class="btn">Voltar ao Login</a>
+                </p>
+            `;
+        }
+        
+        // Executar confirmação quando a página carregar
+        confirmarEmail();
+    </script>
+</body>
+</html>
