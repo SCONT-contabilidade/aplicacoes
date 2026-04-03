@@ -37,7 +37,7 @@
         <!-- ============================================
              TELA DE LOGIN
              ============================================ -->
-        <div id="loginScreen" class="screen">
+        <div id="loginScreen" class="screen active">
             <div class="login-container">
                 <div class="login-box">
                     <h1>🔐 Login</h1>
@@ -115,15 +115,15 @@
         </div>
 
         <!-- ============================================
-             TELA INICIAL
+             TELA DE SELEÇÃO (Competência e Empresa)
              ============================================ -->
-        <div id="initialScreen" class="screen">
+        <div id="selectionScreen" class="screen">
             <div class="card-initial">
                 <div class="card-icon">📋</div>
                 <h2>Folha de Ponto</h2>
-                <p class="card-subtitle">Preencha os dados para começar</p>
+                <p class="card-subtitle">Selecione a competência e empresa</p>
                 
-                <form id="initialForm">
+                <form id="selectionForm">
                     <div class="form-group">
                         <label for="competencia">Competência *</label>
                         <input type="text" id="competencia" placeholder="MM/AAAA (ex: 02/2026)" maxlength="7" required>
@@ -139,24 +139,21 @@
                         <small>Selecione a empresa</small>
                     </div>
                     
-                    <!-- ✅ DROPBOX DE EMPREGADOS -->
-                    <div class="form-group">
-                        <label for="nomeTrabalhador">Nome do Empregado *</label>
-                        <select id="nomeTrabalhador" required>
-                            <option value="">Selecione uma empresa primeiro</option>
-                        </select>
-                        <small>Selecione o empregado</small>
-                    </div>
-                    
                     <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
                         <button type="submit" class="btn btn-primary btn-large" style="flex: 1; min-width: 200px;">
-                            ▶️ Carregar Preenchimento
+                            ▶️ Continuar
                         </button>
-                        <a href="./admin.html" class="btn btn-secondary btn-large" style="flex: 1; min-width: 200px; text-decoration: none; text-align: center;">
-                            ⚙️ Administração
+                        <a href="#" onclick="fazerLogout(event)" class="btn btn-secondary btn-large" style="flex: 1; min-width: 200px; text-decoration: none; text-align: center;">
+                            🚪 Sair
                         </a>
                     </div>
                 </form>
+
+                <div style="margin-top: 30px; text-align: center;">
+                    <a href="./admin.html" style="color: #8B3A3A; text-decoration: none; font-weight: 600;">
+                        ⚙️ Administração
+                    </a>
+                </div>
             </div>
         </div>
 
