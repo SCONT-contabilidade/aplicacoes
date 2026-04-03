@@ -1494,72 +1494,299 @@ function renderizarTabelasDiarias() {
 
 async function exportarParaCSVeSupabase() {
     try {
-        mostrarMensagem('Processando', 'Gerando arquivo e enviando para servidor...');
+        mostrarMensagem('Processando', 'Gerando arquivo Excel e enviando para servidor...');
         
-        let csv = '';
+        // ✅ CRIAR WORKBOOK
+        const workbook = XLSX.utils.book_new();
         
-        state.resultados.forEach(resultado => {
-            csv += '\n\n=== ' + resultado.nomeTrabalhador + ' - ' + resultado.competencia + ' ===\n';
-            csv += 'DATA,DIA,ENTRADA 1,SAIDA 1,ENTRADA 2,SAIDA 2,TRABALHADAS,EXTRAS 50%,EXTRAS 100%,NOT. REAIS,NOT. CONV.,DEVIDAS\n';
+        console.log('📊 Gerando arquivo Excel com ' + state.resultados.length + ' abas...');
+        
+        // ============================================
+        // PASSO 1: CRIAR ABA PARA CADA EMPREGADO
+        // ============================================
+        state.resultados.forEach((resultado, indexResultado) => {
+            console.log(`\n📄 Criando aba: ${resultado.nomeTrabalhador}`);
             
+            const dados = [];
+            
+            // ✅ CABEÇALHO
+            dados.push([
+                'FOLHA DE PONTO',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                ''
+            ]);
+            dados.push([
+                'Empregado: ' + resultado.nomeTrabalhador,
+                '',
+                '',
+                'Competência: ' + resultado.competencia,
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                ''
+            ]);
+            dados.push([]);  // Linha vazia
+            
+            // ✅ CABEÇALHO DA TABELA
+            dados.push([
+                'DATA',
+                'DIA',
+                'ENTRADA 1',
+                'SAIDA 1',
+                'ENTRADA 2',
+                'SAIDA 2',
+                'TRABALHADAS',
+                'EXTRAS 50%',
+                'EXTRAS 100%',
+                'NOT. REAIS',
+                'NOT. CONV.'
+            ]);
+            
+            // ✅ DETALHAMENTO DIÁRIO
             resultado.dias.forEach(dia => {
-                if (dia.entrada1 || dia.saida1 || dia.entrada2 || dia.saida2) {
-                    const totalExtras100 = dia.horasExtras100Geral + dia.horasExtras100Opcional;
-                    csv += `${dia.data},${dia.diaSemana},${dia.entrada1},${dia.saida1},${dia.entrada2},${dia.saida2},${converterMinutosParaHora(dia.horasTrabalhadas)},${converterMinutosParaHora(dia.horasExtras50)},${converterMinutosParaHora(totalExtras100)},${converterMinutosParaHora(dia.horasNoturnaReais)},${converterMinutosParaHora(dia.horasNoturnaConvertida)},${converterMinutosParaHora(dia.horasDevidas)}\n`;
-                }
+                const totalExtras100 = dia.horasExtras100Geral + dia.horasExtras100Opcional;
+                
+                dados.push([
+                    dia.data,
+                    dia.diaSemana,
+                    dia.entrada1 || '',
+                    dia.saida1 || '',
+                    dia.entrada2 || '',
+                    dia.saida2 || '',
+                    converterMinutosParaHora(dia.horasTrabalhadas),
+                    converterMinutosParaHora(dia.horasExtras50),
+                    converterMinutosParaHora(totalExtras100),
+                    converterMinutosParaHora(dia.horasNoturnaReais),
+                    converterMinutosParaHora(dia.horasNoturnaConvertida)
+                ]);
             });
             
-            csv += '\nCONSOLIDADO DO MÊS\n';
+            // ✅ LINHA VAZIA
+            dados.push([]);
+            
+            // ✅ CONSOLIDADO MENSAL
+            dados.push(['CONSOLIDADO DO MÊS']);
+            dados.push([
+                'DESCRIÇÃO',
+                'HORAS'
+            ]);
+            
             const consolidado = resultado.consolidado;
-            csv += `Horas Trabalhadas,${converterMinutosParaHora(consolidado.horasTrabalhadas)}\n`;
-            csv += `Extras 50%,${converterMinutosParaHora(consolidado.horasExtras50)}\n`;
-            csv += `Extras 100% (Feriado),${converterMinutosParaHora(consolidado.horasExtras100Geral)}\n`;
-            csv += `Extras 100% (Opcional),${converterMinutosParaHora(consolidado.horasExtras100Opcional)}\n`;
-            csv += `Noturnas Reais,${converterMinutosParaHora(consolidado.horasNoturnaReais)}\n`;
-            csv += `Noturnas Convertidas,${converterMinutosParaHora(consolidado.horasNoturnaConvertida)}\n`;
-            csv += `Horas Devidas,${converterMinutosParaHora(consolidado.horasDevidas)}\n`;
+            dados.push([
+                'Horas Trabalhadas',
+                converterMinutosParaHora(consolidado.horasTrabalhadas)
+            ]);
+            dados.push([
+                'Extras 50%',
+                converterMinutosParaHora(consolidado.horasExtras50)
+            ]);
+            dados.push([
+                'Extras 100% (Feriado/DSR)',
+                converterMinutosParaHora(consolidado.horasExtras100Geral)
+            ]);
+            dados.push([
+                'Extras 100% (2ª Hora)',
+                converterMinutosParaHora(consolidado.horasExtras100Opcional)
+            ]);
+            dados.push([
+                'Noturnas Reais',
+                converterMinutosParaHora(consolidado.horasNoturnaReais)
+            ]);
+            dados.push([
+                'Noturnas Convertidas',
+                converterMinutosParaHora(consolidado.horasNoturnaConvertida)
+            ]);
+            dados.push([
+                'Horas Devidas',
+                converterMinutosParaHora(consolidado.horasDevidas)
+            ]);
+            
+            // ✅ CRIAR WORKSHEET
+            const worksheet = XLSX.utils.aoa_to_sheet(dados);
+            
+            // ✅ AJUSTAR LARGURA DAS COLUNAS
+            worksheet['!cols'] = [
+                { wch: 12 },  // DATA
+                { wch: 12 },  // DIA
+                { wch: 12 },  // ENTRADA 1
+                { wch: 12 },  // SAIDA 1
+                { wch: 12 },  // ENTRADA 2
+                { wch: 12 },  // SAIDA 2
+                { wch: 14 },  // TRABALHADAS
+                { wch: 14 },  // EXTRAS 50%
+                { wch: 14 },  // EXTRAS 100%
+                { wch: 14 },  // NOT. REAIS
+                { wch: 14 }   // NOT. CONV.
+            ];
+            
+            // ✅ ADICIONAR WORKSHEET AO WORKBOOK
+            XLSX.utils.book_append_sheet(workbook, worksheet, resultado.nomeTrabalhador);
         });
         
-        // ✅ UPLOAD PARA SUPABASE STORAGE
-        const nomeArquivo = `Folha_Ponto_${state.codigoEmpresa}_${state.competencia.replace('/', '_')}_${Date.now()}.csv`;
-        const caminhoArquivo = `${state.codigoEmpresa}/${state.competencia}/${nomeArquivo}`;
+        // ============================================
+        // PASSO 2: CRIAR ABA DE CONSOLIDADO GERAL
+        // ============================================
+        console.log('\n📊 Criando aba de consolidado geral...');
         
-        const { data: uploadData, error: uploadError } = await supabaseClient
-            .storage
-            .from('folha_ponto')
-            .upload(caminhoArquivo, new Blob([csv], { type: 'text/csv;charset=utf-8;' }), {
-                cacheControl: '3600',
-                upsert: false
-            });
+        const dadosConsolidado = [];
         
-        if (uploadError) {
-            console.warn('⚠️ Erro ao fazer upload para Supabase:', uploadError);
-            console.log('💾 Salvando localmente em vez disso...');
-            salvarCSVLocalmente(csv, nomeArquivo);
-            return;
+        // ✅ CABEÇALHO
+        dadosConsolidado.push([
+            'CONSOLIDADO MENSAL GERAL',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            ''
+        ]);
+        dadosConsolidado.push([
+            'Competência: ' + state.competencia,
+            '',
+            '',
+            'Empresa: ' + state.codigoEmpresa,
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            ''
+        ]);
+        dadosConsolidado.push([]);  // Linha vazia
+        
+        // ✅ CABEÇALHO DA TABELA
+        dadosConsolidado.push([
+            'EMPREGADO',
+            'TRABALHADAS',
+            'EXTRAS 50%',
+            'EXTRAS 100% (Feriado)',
+            'EXTRAS 100% (2ª Hora)',
+            'NOT. REAIS',
+            'NOT. CONV.',
+            'HORAS DEVIDAS'
+        ]);
+        
+        // ✅ DADOS DE CADA EMPREGADO
+        state.resultados.forEach(resultado => {
+            const consolidado = resultado.consolidado;
+            
+            dadosConsolidado.push([
+                resultado.nomeTrabalhador,
+                converterMinutosParaHora(consolidado.horasTrabalhadas),
+                converterMinutosParaHora(consolidado.horasExtras50),
+                converterMinutosParaHora(consolidado.horasExtras100Geral),
+                converterMinutosParaHora(consolidado.horasExtras100Opcional),
+                converterMinutosParaHora(consolidado.horasNoturnaReais),
+                converterMinutosParaHora(consolidado.horasNoturnaConvertida),
+                converterMinutosParaHora(consolidado.horasDevidas)
+            ]);
+        });
+        
+        // ✅ TOTAIS
+        dadosConsolidado.push([]);
+        dadosConsolidado.push(['TOTAIS']);
+        
+        let totalTrabalhadas = 0;
+        let totalExtras50 = 0;
+        let totalExtras100Geral = 0;
+        let totalExtras100Opcional = 0;
+        let totalNoturnaReais = 0;
+        let totalNoturnaConvertida = 0;
+        let totalDevidas = 0;
+        
+        state.resultados.forEach(resultado => {
+            const consolidado = resultado.consolidado;
+            totalTrabalhadas += consolidado.horasTrabalhadas;
+            totalExtras50 += consolidado.horasExtras50;
+            totalExtras100Geral += consolidado.horasExtras100Geral;
+            totalExtras100Opcional += consolidado.horasExtras100Opcional;
+            totalNoturnaReais += consolidado.horasNoturnaReais;
+            totalNoturnaConvertida += consolidado.horasNoturnaConvertida;
+            totalDevidas += consolidado.horasDevidas;
+        });
+        
+        dadosConsolidado.push([
+            'TOTAL',
+            converterMinutosParaHora(totalTrabalhadas),
+            converterMinutosParaHora(totalExtras50),
+            converterMinutosParaHora(totalExtras100Geral),
+            converterMinutosParaHora(totalExtras100Opcional),
+            converterMinutosParaHora(totalNoturnaReais),
+            converterMinutosParaHora(totalNoturnaConvertida),
+            converterMinutosParaHora(totalDevidas)
+        ]);
+        
+        // ✅ CRIAR WORKSHEET
+        const worksheetConsolidado = XLSX.utils.aoa_to_sheet(dadosConsolidado);
+        
+        // ✅ AJUSTAR LARGURA DAS COLUNAS
+        worksheetConsolidado['!cols'] = [
+            { wch: 20 },  // EMPREGADO
+            { wch: 14 },  // TRABALHADAS
+            { wch: 14 },  // EXTRAS 50%
+            { wch: 18 },  // EXTRAS 100% (Feriado)
+            { wch: 18 },  // EXTRAS 100% (2ª Hora)
+            { wch: 14 },  // NOT. REAIS
+            { wch: 14 },  // NOT. CONV.
+            { wch: 14 }   // HORAS DEVIDAS
+        ];
+        
+        // ✅ ADICIONAR WORKSHEET AO WORKBOOK
+        XLSX.utils.book_append_sheet(workbook, worksheetConsolidado, 'Consolidado Geral');
+        
+        // ============================================
+        // PASSO 3: GERAR E BAIXAR ARQUIVO
+        // ============================================
+        const nomeArquivo = `Folha_Ponto_${state.codigoEmpresa}_${state.competencia.replace('/', '_')}_${Date.now()}.xlsx`;
+        
+        console.log('💾 Gerando arquivo: ' + nomeArquivo);
+        XLSX.writeFile(workbook, nomeArquivo);
+        
+        // ============================================
+        // PASSO 4: SALVAR NO SUPABASE (OPCIONAL)
+        // ============================================
+        try {
+            const { error: updateError } = await supabaseClient
+                .from('saves')
+                .update({
+                    data_exportacao: new Date().toISOString(),
+                    status: 'processado'
+                })
+                .eq('usuario_id', state.usuarioId)
+                .eq('empresa_codigo', state.codigoEmpresa)
+                .eq('competencia', state.competencia);
+            
+            if (updateError) {
+                console.warn('⚠️ Erro ao atualizar status no Supabase:', updateError);
+            } else {
+                console.log('✅ Status atualizado no Supabase');
+            }
+        } catch (erro) {
+            console.warn('⚠️ Erro ao salvar no Supabase:', erro);
         }
         
-        console.log('✅ Arquivo enviado para Supabase:', uploadData);
-        
-        // ✅ DOWNLOAD LOCAL
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        
-        link.setAttribute('href', url);
-        link.setAttribute('download', nomeArquivo);
-        link.style.visibility = 'hidden';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        mostrarMensagem('Sucesso', `Arquivo exportado com sucesso!\nArmazenado em: ${caminhoArquivo}`);
-        console.log('✅ Arquivo exportado e enviado para Supabase');
+        mostrarMensagem('Sucesso', `Arquivo exportado com sucesso!\n\nArquivo: ${nomeArquivo}\n\nAbas:\n- ${state.resultados.map(r => r.nomeTrabalhador).join('\n- ')}\n- Consolidado Geral`);
+        console.log('✅ Arquivo exportado com sucesso');
         
     } catch (erro) {
         console.error('❌ Erro ao exportar:', erro);
-        mostrarMensagem('Erro', 'Erro ao exportar arquivo.');
+        mostrarMensagem('Erro', 'Erro ao exportar arquivo: ' + erro.message);
     }
 }
 
