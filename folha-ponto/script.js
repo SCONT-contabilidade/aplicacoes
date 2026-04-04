@@ -812,10 +812,13 @@ async function gerarArquivoTXT() {
             const rubricasMap = {};
             (rubricasData || []).forEach(r => { rubricasMap[r.evento] = r.codigo_rubrica; });
             
-            // 2. Buscar Folhas Salvas
-            const { data: savesData } = await supabaseClient.from('saves').select('*').eq('empresa_codigo', codigoEmpresa).eq('competencia', competencia);
+            // 2. Buscar Folhas Salvas (Todas as versões)
+            const { data: savesDataRaw } = await supabaseClient.from('saves').select('*').eq('empresa_codigo', codigoEmpresa).eq('competencia', competencia);
             
-            if (!savesData || savesData.length === 0) continue;
+            if (!savesDataRaw || savesDataRaw.length === 0) continue;
+            
+            // ✅ CORREÇÃO DE DUPLICIDADE: Filtrar para manter apenas a última versão de cada empregado
+            const savesData = filtrarUltimasVersoes(savesDataRaw);
             
             // 3. Buscar Códigos dos Empregados
             const nomesEmpregados = savesData.map(s => s.nome_trabalhador);
@@ -823,7 +826,7 @@ async function gerarArquivoTXT() {
             const empMap = {};
             (empData || []).forEach(e => { empMap[e.nome_empregado] = e.codigo_empregado; });
             
-            // 4. Processar cada folha e gerar linhas
+            // 4. Processar cada folha (agora única por empregado) e gerar linhas
             for (const save of savesData) {
                 const dadosJson = JSON.parse(save.dados_json);
                 const feriadosJson = JSON.parse(save.feriados_json || '[]');
@@ -853,12 +856,14 @@ async function gerarArquivoTXT() {
                 const consolidado = resultado.consolidado;
                 const codEmpregado = empMap[save.nome_trabalhador] || '0';
                 
+                // ✅ UNIFICAÇÃO DAS HORAS EXTRAS 100%
+                const totalExtras100 = consolidado.horasExtras100Geral + consolidado.horasExtras100Opcional;
+                
                 // Mapeamento de eventos para o TXT
                 const eventosParaExportar = [
                     { chave: 'horasTrabalhadas', valor: consolidado.horasTrabalhadas },
                     { chave: 'horasExtras50', valor: consolidado.horasExtras50 },
-                    { chave: 'horasExtras100Geral', valor: consolidado.horasExtras100Geral },
-                    { chave: 'horasExtras100Opcional', valor: consolidado.horasExtras100Opcional },
+                    { chave: 'horasExtras100', valor: totalExtras100 }, // ✅ Usa o valor somado
                     { chave: 'horasNoturnaConvertida', valor: consolidado.horasNoturnaConvertida },
                     { chave: 'horasDevidas', valor: consolidado.horasDevidas }
                 ];
