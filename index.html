@@ -5,63 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SCONT Soluções Contábeis - Portal de Aplicações</title>
     <style>
-        /* ===== RESET E VARIÁVEIS ===== */
+        :root {
+            --primary-color: #8B3A3A;
+            --primary-hover: #6B2A2A;
+            --secondary-color: #2C3E50;
+            --background-color: #F4F7F6;
+            --card-bg: #FFFFFF;
+            --text-primary: #2C3E50;
+            --text-secondary: #7F8C8D;
+            --border-color: #E0E6ED;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }
-
-        :root {
-            /* Paleta cinza e bordô */
-            --header-color: #6B3E3E;
-            --header-dark: #4A2A2A;
-            --header-light: #8B5555;
-            --gray-50: #F9F9F9;
-            --gray-100: #F3F3F3;
-            --gray-150: #ECECEC;
-            --gray-200: #E5E5E5;
-            --gray-300: #D9D9D9;
-            --gray-400: #CCCCCC;
-            --gray-500: #999999;
-            --gray-600: #666666;
-            --gray-700: #4D4D4D;
-            --gray-800: #333333;
-            --accent-gray: #757575;
-            --border-radius: 8px;
-            --box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            --box-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
-            --transition: all 0.3s ease;
-        }
-
-        html {
-            font-size: 16px;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
-            font-family: 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: linear-gradient(135deg, #F5F5F5 0%, #EFEFEF 100%);
-            color: var(--gray-700);
+            background-color: var(--background-color);
+            color: var(--text-primary);
             line-height: 1.6;
-            min-height: 100vh;
         }
 
-        /* ===== CONTAINER ===== */
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        /* ===== HEADER ===== */
+        /* --- HEADER --- */
         .header {
-            background: linear-gradient(135deg, var(--header-color) 0%, var(--header-dark) 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
             color: white;
-            padding: 60px 30px;
-            border-radius: 12px;
-            margin-bottom: 50px;
-            box-shadow: var(--box-shadow-lg);
+            padding: 40px 20px;
             text-align: center;
+            box-shadow: var(--shadow-md);
             position: relative;
             overflow: hidden;
         }
@@ -69,39 +49,25 @@
         .header::before {
             content: '';
             position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 50%;
-        }
-
-        .header::after {
-            content: '';
-            position: absolute;
-            bottom: -30%;
-            left: -5%;
-            width: 250px;
-            height: 250px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 50%;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><path d="M10 10h10v10H10z" fill="rgba(255,255,255,0.05)"/></svg>') repeat;
+            opacity: 0.5;
         }
 
         .header-content {
             position: relative;
             z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
         }
-
-        .logo {
+    .logo {
             max-width: 150px;
             height: auto;
             margin-bottom: 20px;
             filter: brightness(0) invert(1);
         }
-
         .header h1 {
-            font-size: 32px;
+            font-size: 26px;
             font-weight: 700;
             margin-bottom: 10px;
             letter-spacing: -0.5px;
@@ -109,25 +75,37 @@
 
         .header p {
             font-size: 16px;
-            opacity: 0.95;
+            opacity: 0.9;
             font-weight: 300;
         }
 
-        /* ===== SEÇÃO DE MÓDULOS ===== */
+        /* --- MAIN CONTAINER --- */
+        .container {
+            max-width: 1200px;
+            margin: -30px auto 40px;
+            padding: 0 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* --- SECTIONS --- */
         .modules-section {
-            margin-bottom: 50px;
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-md);
         }
 
         .section-title {
             font-size: 24px;
-            font-weight: 700;
-            color: var(--header-color);
+            color: var(--secondary-color);
             margin-bottom: 30px;
             padding-bottom: 15px;
-            border-bottom: 3px solid var(--header-color);
+            border-bottom: 2px solid var(--border-color);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .section-title::before {
@@ -135,48 +113,43 @@
             font-size: 28px;
         }
 
-        /* ===== GRID DE APLICAÇÕES ===== */
+        /* --- GRID DE APLICAÇÕES --- */
         .applications-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 25px;
-            margin-bottom: 40px;
         }
 
-        /* ===== CARD DE APLICAÇÃO ===== */
+        /* --- CARDS DE APLICAÇÃO --- */
         .app-card {
-            background: white;
-            border-radius: var(--border-radius);
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
             padding: 25px;
-            box-shadow: var(--box-shadow);
-            transition: var(--transition);
-            border: 2px solid transparent;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
             text-decoration: none;
             color: inherit;
             display: flex;
             flex-direction: column;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-color);
         }
 
         .app-card::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; right: 0;
             height: 4px;
-            background: linear-gradient(90deg, var(--header-color), var(--header-light));
+            background: var(--primary-color);
             transform: scaleX(0);
             transform-origin: left;
             transition: transform 0.3s ease;
-        }
-
-        .app-card:hover {
-            box-shadow: var(--box-shadow-lg);
-            transform: translateY(-5px);
-            border-color: var(--header-color);
         }
 
         .app-card:hover::before {
@@ -184,152 +157,131 @@
         }
 
         .app-icon {
-            font-size: 48px;
+            font-size: 40px;
             margin-bottom: 15px;
-            display: inline-block;
+            line-height: 1;
         }
 
         .app-card h3 {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--header-color);
+            font-size: 20px;
+            color: var(--secondary-color);
             margin-bottom: 10px;
         }
 
         .app-card p {
-            font-size: 13px;
-            color: var(--gray-600);
-            margin-bottom: 15px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
             flex-grow: 1;
-            line-height: 1.5;
         }
 
         .app-features {
             list-style: none;
-            margin-bottom: 15px;
-            font-size: 12px;
+            margin-bottom: 25px;
+            padding-top: 15px;
+            border-top: 1px dashed var(--border-color);
         }
 
         .app-features li {
-            padding: 5px 0;
-            color: var(--gray-700);
-            padding-left: 18px;
-            position: relative;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .app-features li::before {
             content: '✓';
-            position: absolute;
-            left: 0;
-            color: var(--header-color);
+            color: #70AD47;
             font-weight: bold;
         }
 
         .app-button {
-            background: linear-gradient(135deg, var(--header-color), var(--header-light));
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 13px;
-            cursor: pointer;
-            transition: var(--transition);
+            background: #F8F9FA;
+            color: var(--primary-color);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 8px;
             text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            width: 100%;
+            font-weight: 600;
+            font-size: 14px;
+            transition: var(--transition);
+            margin-top: auto;
         }
 
-        .app-button:hover {
-            transform: scale(1.02);
-            box-shadow: 0 4px 12px rgba(107, 62, 62, 0.3);
-        }
-
-        .app-button:active {
-            transform: scale(0.98);
-        }
-
-        /* ===== CARD ESPECIAL ===== */
-        .app-card.featured {
-            border: 2px solid var(--header-color);
-            background: linear-gradient(135deg, rgba(107, 62, 62, 0.05) 0%, rgba(107, 62, 62, 0.02) 100%);
-        }
-
-        .badge-new {
-            display: inline-block;
-            background: var(--header-color);
+        .app-card:hover .app-button {
+            background: var(--primary-color);
             color: white;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            border-color: var(--primary-color);
         }
 
-        /* ===== SEÇÃO DE INFORMAÇÕES ===== */
+        /* Destaque para cards novos */
+        .app-card.featured {
+            border-color: #FFC107;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.15);
+        }
+        .app-card.featured::before { background: #FFC107; }
+        .app-card.featured:hover .app-button { background: #FFC107; border-color: #FFC107; color: #000; }
+        
+        .badge-new {
+            position: absolute;
+            top: 15px; right: 15px;
+            background: #FFC107;
+            color: #000;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+        }
+
+        /* --- INFO SECTION --- */
         .info-section {
-            background: white;
-            border-radius: var(--border-radius);
-            padding: 30px;
-            box-shadow: var(--box-shadow);
+            background: var(--secondary-color);
+            color: white;
+            border-radius: var(--radius-lg);
+            padding: 40px;
             margin-bottom: 30px;
         }
 
         .info-section h2 {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--header-color);
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid var(--gray-200);
+            font-size: 24px;
+            margin-bottom: 30px;
+            text-align: center;
         }
 
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
+            gap: 30px;
         }
 
         .info-item {
-            padding: 15px;
-            background: var(--gray-50);
-            border-radius: 6px;
-            border-left: 4px solid var(--header-color);
+            text-align: center;
         }
 
         .info-item h4 {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--header-color);
-            margin-bottom: 8px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #E0E6ED;
         }
 
         .info-item p {
-            font-size: 12px;
-            color: var(--gray-600);
-            line-height: 1.5;
+            font-size: 14px;
+            color: #A0AAB5;
         }
 
-        /* ===== FOOTER ===== */
+        /* --- FOOTER --- */
         .footer {
-            background: var(--header-dark);
-            color: white;
-            padding: 30px;
-            border-radius: var(--border-radius);
             text-align: center;
-            margin-top: 50px;
-            font-size: 13px;
-        }
-
-        .footer p {
-            margin-bottom: 10px;
+            padding: 30px 20px;
+            color: var(--text-secondary);
+            font-size: 14px;
         }
 
         .footer a {
-            color: var(--header-light);
+            color: var(--primary-color);
             text-decoration: none;
             font-weight: 600;
         }
@@ -338,86 +290,68 @@
             text-decoration: underline;
         }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
-            .header {
-                padding: 40px 20px;
-            }
-
-            .header h1 {
-                font-size: 24px;
-            }
-
-            .header p {
-                font-size: 14px;
-            }
-
-            .applications-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-
-            .app-card {
-                padding: 20px;
-            }
-
-            .app-icon {
-                font-size: 40px;
-            }
-
-            .app-card h3 {
-                font-size: 16px;
-            }
-
-            .info-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .section-title {
-                font-size: 20px;
-            }
+            .header { padding: 30px 20px 60px; }
+            .header h1 { font-size: 28px; }
+            .modules-section { padding: 25px; }
+            .applications-grid { grid-template-columns: 1fr; }
         }
-
-        /* ===== ANIMAÇÕES ===== */
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .app-card {
-            animation: slideInUp 0.5s ease forwards;
-        }
-
-        .app-card:nth-child(1) { animation-delay: 0.1s; }
-        .app-card:nth-child(2) { animation-delay: 0.2s; }
-        .app-card:nth-child(3) { animation-delay: 0.3s; }
-        .app-card:nth-child(4) { animation-delay: 0.4s; }
-        .app-card:nth-child(5) { animation-delay: 0.5s; }
-        .app-card:nth-child(6) { animation-delay: 0.6s; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- HEADER -->
-        <header class="header">
-            <div class="header-content">
-                <img src="https://scontdf.com.br/wp-content/uploads/2019/11/logo-scont-1024x363.png" alt="Logo SCONT" class="logo">
-                <h1>Portal de Aplicações</h1>
-                <p>SCONT Soluções Contábeis - Acesso centralizado a todas as ferramentas</p>
-            </div>
-        </header>
 
-        <!-- GESTÃO DE EMPRESAS -->
+    <header class="header">
+        <div class="header-content">
+            <img src="https://scontdf.com.br/wp-content/uploads/2019/11/logo-scont-1024x363.png" alt="Logo SCONT" class="logo">
+            <h1>Portal de Aplicações</h1>
+            <p>SCONT Soluções Contábeis - Acesso centralizado a todas as ferramentas</p>
+        </div>
+    </header>
+
+    <div class="container">
+        
+        <!-- MÓDULO: GESTÃO DE PESSOAS (NOVO) -->
+        <section class="modules-section">
+            <h2 class="section-title" data-icon="👥">Gestão de Pessoas</h2>
+            <div class="applications-grid">
+                
+                <!-- App: Folha de Ponto -->
+                <a href=".\folha-ponto\index.html" class="app-card">
+                    <div class="app-icon">⏱️</div>
+                    <h3>Folha de Ponto</h3>
+                    <p>Apuração e processamento de horas trabalhadas, extras e noturnas.</p>
+                    <ul class="app-features">
+                        <li>Cálculo automático de horas</li>
+                        <li>Gestão de feriados e DSR</li>
+                        <li>Exportação para Excel</li>
+                        <li>Salvamento em nuvem</li>
+                    </ul>
+                    <div class="app-button">Acessar Sistema</div>
+                </a>
+
+                <!-- App: Lançamentos em Lote -->
+                <a href=".\folha-ponto\lancamentos.html" class="app-card">
+                    <div class="app-icon">💸</div>
+                    <h3>Lançamentos em Lote</h3>
+                    <p>Lançamento de pagamentos e eventos na folha via arquivo TXT.</p>
+                    <ul class="app-features">
+                        <li>Seleção múltipla de empresas</li>
+                        <li>Filtro de empregados</li>
+                        <li>Geração de arquivo TXT</li>
+                        <li>Layout rigoroso para importação</li>
+                    </ul>
+                    <div class="app-button">Acessar Lançamentos</div>
+                </a>
+
+            </div>
+        </section>
+
+        <!-- MÓDULO: GESTÃO DE EMPRESAS -->
         <section class="modules-section">
             <h2 class="section-title" data-icon="🏢">Gestão de Empresas</h2>
             <div class="applications-grid">
-                <!-- CARD 1: REGISTRO DE EMPRESA -->
+                
+                <!-- App: Registro -->
                 <a href="formulario_registro.html" class="app-card">
                     <div class="app-icon">📝</div>
                     <h3>Registro de Empresa</h3>
@@ -428,10 +362,10 @@
                         <li>Dados de sócios</li>
                         <li>Documentação</li>
                     </ul>
-                    <button class="app-button">Acessar Registro</button>
+                    <div class="app-button">Acessar Registro</div>
                 </a>
 
-                <!-- CARD 2: ALTERAÇÃO DE EMPRESA -->
+                <!-- App: Alteração -->
                 <a href="formulario_alteracao.html" class="app-card">
                     <div class="app-icon">✏️</div>
                     <h3>Alteração de Empresa</h3>
@@ -442,16 +376,18 @@
                         <li>Gerenciar sócios</li>
                         <li>Histórico de alterações</li>
                     </ul>
-                    <button class="app-button">Acessar Alteração</button>
+                    <div class="app-button">Acessar Alteração</div>
                 </a>
+
             </div>
         </section>
 
-        <!-- GESTÃO DE DOCUMENTOS -->
+        <!-- MÓDULO: GESTÃO DE DOCUMENTOS -->
         <section class="modules-section">
             <h2 class="section-title" data-icon="📂">Gestão de Documentos</h2>
             <div class="applications-grid">
-                <!-- CARD 3: GERENCIADOR DE DOCUMENTOS -->
+                
+                <!-- App: Leitor -->
                 <a href="leitor.html" class="app-card">
                     <div class="app-icon">📋</div>
                     <h3>Gerenciador de Documentos</h3>
@@ -462,10 +398,10 @@
                         <li>Buscar documentos</li>
                         <li>Download de arquivos</li>
                     </ul>
-                    <button class="app-button">Acessar Documentos</button>
+                    <div class="app-button">Acessar Documentos</div>
                 </a>
 
-                <!-- CARD 4: CONTROLADOR DE CERTIFICADOS -->
+                <!-- App: Certificados -->
                 <a href="certificado_digital.html" class="app-card featured">
                     <div class="badge-new">🆕 Novo</div>
                     <div class="app-icon">🔐</div>
@@ -477,12 +413,57 @@
                         <li>Upload de arquivos</li>
                         <li>Histórico de atividades</li>
                     </ul>
-                    <button class="app-button">Acessar Controlador</button>
+                    <div class="app-button">Acessar Controlador</div>
                 </a>
+
             </div>
         </section>
 
-        <!-- SEÇÃO DE INFORMAÇÕES -->
+        <!-- MÓDULO: FERRAMENTAS ÚTEIS (NOVO) -->
+        <section class="modules-section">
+            <h2 class="section-title" data-icon="🛠️">Ferramentas Úteis</h2>
+            <div class="applications-grid">
+                
+                <!-- App: Renomeador -->
+                <a href=".\folha-ponto\renomeador.html" class="app-card">
+                    <div class="app-icon">🔄</div>
+                    <h3>Renomeador de Arquivos</h3>
+                    <p>Renomeie e organize arquivos em lote com base em regras dinâmicas.</p>
+                    <ul class="app-features">
+                        <li>Identificação automática de padrões</li>
+                        <li>Criação de subpastas dinâmicas</li>
+                        <li>Dicionário de nomes de documentos</li>
+                        <li>Processamento local seguro</li>
+                    </ul>
+                    <div class="app-button">Acessar Renomeador</div>
+                </a>
+
+            </div>
+        </section>
+
+        <!-- MÓDULO: ADMINISTRAÇÃO (NOVO) -->
+        <section class="modules-section" style="background: #F8F9FA; border: 1px solid #DEE2E6;">
+            <h2 class="section-title" data-icon="⚙️" style="color: #495057; border-bottom-color: #CED4DA;">Administração do Sistema</h2>
+            <div class="applications-grid">
+                
+                <!-- App: Admin -->
+                <a href=".\folha-ponto\admin.html" class="app-card" style="border-color: #CED4DA;">
+                    <div class="app-icon">🛡️</div>
+                    <h3 style="color: #495057;">Painel do Administrador</h3>
+                    <p>Gerencie as bases de dados, regras e configurações globais do sistema.</p>
+                    <ul class="app-features">
+                        <li>Cadastro de Empresas e Empregados</li>
+                        <li>Gestão de Rubricas (TXT)</li>
+                        <li>Regras de Renomeação</li>
+                        <li>Importação de dados via Excel</li>
+                    </ul>
+                    <div class="app-button" style="background: #495057; color: white; border-color: #495057;">Acessar Painel Admin</div>
+                </a>
+
+            </div>
+        </section>
+
+        <!-- INFORMAÇÕES IMPORTANTES -->
         <section class="info-section">
             <h2>📌 Informações Importantes</h2>
             <div class="info-grid">
@@ -496,7 +477,7 @@
                 </div>
                 <div class="info-item">
                     <h4>📞 Suporte Técnico</h4>
-                    <p>Equipe disponível para suporte via WhatsApp: <strong>+55 61 99354-3223</strong></p>
+                    <p>Equipe disponível para suporte via WhatsApp: <br><strong>+55 61 99354-3223</strong></p>
                 </div>
                 <div class="info-item">
                     <h4>⚡ Performance</h4>
@@ -504,7 +485,7 @@
                 </div>
                 <div class="info-item">
                     <h4>📊 Relatórios</h4>
-                    <p>Gere relatórios detalhados em múltiplos formatos (PDF, CSV, Excel).</p>
+                    <p>Gere relatórios detalhados em múltiplos formatos (PDF, CSV, Excel, TXT).</p>
                 </div>
                 <div class="info-item">
                     <h4>🔄 Backup Automático</h4>
@@ -513,28 +494,22 @@
             </div>
         </section>
 
-        <!-- FOOTER -->
-        <footer class="footer">
-            <p><strong>SCONT Soluções Contábeis LTDA</strong></p>
-           
-            <p>© 2026 - Todos os direitos reservados | <a href="mailto:contato@scontdf.com.br">contato@scontdf.com.br</a></p>
-        </footer>
     </div>
-    </div>
+
+    <footer class="footer">
+        <p><strong>SCONT Soluções Contábeis LTDA</strong></p>
+        <p>© 2026 - Todos os direitos reservados | <a href="mailto:contato@scontdf.com.br">contato@scontdf.com.br</a></p>
+    </footer>
 
     <script>
-        // Animação suave ao carregar
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('Portal de Aplicações SCONT carregado com sucesso');
-        });
-
-        // Adicionar feedback visual ao clicar nos cards
+        // Adiciona um pequeno efeito de clique nos cards
         document.querySelectorAll('.app-card').forEach(card => {
             card.addEventListener('click', function(e) {
-                if (e.target.closest('.app-button')) {
-                    return;
+                // Se não for um link com href válido, previne o comportamento padrão
+                if(this.getAttribute('href') === '#') {
+                    e.preventDefault();
+                    console.log('Navegando para: ' + this.querySelector('h3').innerText);
                 }
-                window.location.href = this.href;
             });
         });
     </script>

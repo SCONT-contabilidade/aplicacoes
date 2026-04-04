@@ -1,30 +1,25 @@
 /**
  * SCONT - Lançamentos em Lote
- * Arquivo: lancamentos.js
+ * Arquivo: lancamentos.js (Acesso Livre - Leitura do Supabase)
  */
 
 const SUPABASE_URL = 'https://udnikmolgryzczalcbbz.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkbmlrbW9sZ3J5emN6YWxjYmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDQzNTUsImV4cCI6MjA5MDcyMDM1NX0.9vCwDkmxhrLAc-UxKpUxiVHF0BBh8OIdGZPKpTWu-lI';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let conteudoTXTGerado = ''; // Armazena o conteúdo final para download
+let conteudoTXTGerado = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Verificar Autenticação
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) {
-        window.location.href = './index.html';
-        return;
-    }
+    // ✅ ACESSO LIVRE: Nenhuma verificação de usuário (auth.getUser) é feita aqui.
 
-    // 2. Formatar input de competência
+    // Formatação do campo de competência
     document.getElementById('lanCompetencia').addEventListener('input', (e) => {
         let v = e.target.value.replace(/\D/g, '');
         if (v.length >= 2) v = v.substring(0, 2) + '/' + v.substring(2, 6);
         e.target.value = v;
     });
 
-    // 3. Carregar Empresas Iniciais
+    // Carrega a lista de empresas cadastradas pelo Admin logo ao iniciar
     carregarEmpresas();
 });
 
@@ -36,98 +31,92 @@ function mostrarMensagem(titulo, mensagem) {
     document.getElementById('messageModal').classList.add('active');
 }
 
-function fecharModalMensagem() { 
-    document.getElementById('messageModal').classList.remove('active'); 
+function fecharModalMensagem() {
+    document.getElementById('messageModal').classList.remove('active');
 }
 
 function ativarStep(stepId) {
-    const step = document.getElementById(stepId);
-    step.style.display = 'block';
-    step.style.opacity = '1';
-    step.style.pointerEvents = 'auto';
-    step.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.querySelectorAll('.step-card').forEach(card => card.classList.remove('active'));
+    document.getElementById(stepId).classList.add('active');
 }
 
-// Filtra as listas de checkboxes em tempo real
 function filtrarLista(inputId, listId) {
-    const input = document.getElementById(inputId);
-    const filter = input.value.toLowerCase();
-    const container = document.getElementById(listId);
-    const items = container.getElementsByClassName('checkbox-item');
-
-    for (let i = 0; i < items.length; i++) {
-        const label = items[i].getElementsByTagName('label')[0];
-        if (label) {
-            const textValue = label.textContent || label.innerText;
-            if (textValue.toLowerCase().indexOf(filter) > -1) {
-                items[i].style.display = "";
-            } else {
-                items[i].style.display = "none";
-            }
-        }
-    }
-}
-
-// Seleciona apenas os checkboxes que estão visíveis (não filtrados)
-function selecionarTodos(containerId, selecionar) {
-    const container = document.getElementById(containerId);
-    const items = container.getElementsByClassName('checkbox-item');
+    const termo = document.getElementById(inputId).value.toLowerCase();
+    const itens = document.querySelectorAll(`#${listId} .checkbox-item`);
     
-    for (let i = 0; i < items.length; i++) {
-        // Verifica se o item não está oculto pelo filtro
-        if (items[i].style.display !== "none") {
-            const checkbox = items[i].querySelector('input[type="checkbox"]');
-            if (checkbox) {
-                checkbox.checked = selecionar;
-            }
-        }
-    }
+    itens.forEach(item => {
+        const texto = item.textContent.toLowerCase();
+        item.style.display = texto.includes(termo) ? 'flex' : 'none';
+    });
 }
 
-// --- LÓGICA DE DADOS (SUPABASE) ---
+function selecionarTodos(containerId, selecionar) {
+    const itensVisiveis = Array.from(document.querySelectorAll(`#${containerId} .checkbox-item`))
+                               .filter(item => item.style.display !== 'none');
+    
+    itensVisiveis.forEach(item => {
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (checkbox) checkbox.checked = selecionar;
+    });
+}
+
+// --- LÓGICA DE DADOS (BUSCA NO SUPABASE) ---
 
 async function carregarEmpresas() {
+    const container = document.getElementById('listaEmpresas');
+    container.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">Carregando empresas do banco de dados...</div>';
+
     try {
+        // Busca as empresas cadastradas pelo Administrador
         const { data, error } = await supabaseClient
             .from('empresas')
             .select('codigo_empresa, nome_empresa')
             .order('nome_empresa', { ascending: true });
-            
+
         if (error) throw error;
-        
-        const container = document.getElementById('listaEmpresas');
+
         container.innerHTML = '';
-        
         if (!data || data.length === 0) {
-            container.innerHTML = '<div style="padding: 10px; color: red;">Nenhuma empresa cadastrada.</div>';
+            container.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">Nenhuma empresa cadastrada no sistema.</div>';
             return;
         }
 
         data.forEach(emp => {
             container.innerHTML += `
                 <div class="checkbox-item">
-                    <input type="checkbox" id="emp_${emp.codigo_empresa}" value="${emp.codigo_empresa}" data-nome="${emp.nome_empresa}">
+                    <input type="checkbox" id="emp_${emp.codigo_empresa}" value="${emp.codigo_empresa}">
                     <label for="emp_${emp.codigo_empresa}">${emp.codigo_empresa} - ${emp.nome_empresa}</label>
                 </div>
             `;
         });
+
     } catch (erro) {
-        mostrarMensagem('Erro', 'Falha ao carregar empresas.');
+        console.error('Erro ao carregar empresas:', erro);
+        mostrarMensagem('Erro', 'Falha ao carregar a lista de empresas do servidor.');
     }
 }
 
 async function buscarEmpregados() {
-    const competencia = document.getElementById('lanCompetencia').value;
-    if (!/^(0[1-9]|1[0-2])\/\d{4}$/.test(competencia)) {
-        mostrarMensagem('Erro', 'Informe uma competência válida (MM/AAAA).'); return;
+    const comp = document.getElementById('lanCompetencia').value;
+    if (!/^(0[1-9]|1[0-2])\/\d{4}$/.test(comp)) {
+        mostrarMensagem('Atenção', 'Informe uma competência válida (MM/AAAA).');
+        return;
     }
 
-    const empresasSelecionadas = Array.from(document.querySelectorAll('#listaEmpresas input:checked')).map(cb => cb.value);
+    const checkboxesEmpresas = document.querySelectorAll('#listaEmpresas input[type="checkbox"]:checked');
+    const empresasSelecionadas = Array.from(checkboxesEmpresas).map(cb => cb.value);
+
     if (empresasSelecionadas.length === 0) {
-        mostrarMensagem('Erro', 'Selecione pelo menos uma empresa.'); return;
+        mostrarMensagem('Atenção', 'Selecione pelo menos uma empresa.');
+        return;
     }
+
+    const container = document.getElementById('listaEmpregados');
+    container.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">Buscando empregados vinculados...</div>';
+    ativarStep('step2');
 
     try {
+        // Busca os empregados vinculados às empresas selecionadas
         const { data, error } = await supabaseClient
             .from('empregados')
             .select('codigo_empresa, codigo_empregado, nome_empregado')
@@ -137,35 +126,36 @@ async function buscarEmpregados() {
 
         if (error) throw error;
 
-        const container = document.getElementById('listaEmpregados');
         container.innerHTML = '';
-        document.getElementById('buscaEmpregado').value = ''; // Limpa a busca anterior
-
         if (!data || data.length === 0) {
-            container.innerHTML = '<div style="padding: 10px; color: red;">Nenhum empregado encontrado para as empresas selecionadas.</div>';
+            container.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">Nenhum empregado encontrado para as empresas selecionadas.</div>';
             return;
         }
 
         data.forEach(emp => {
+            const valorCheckbox = `${emp.codigo_empresa}|${emp.codigo_empregado}`;
             container.innerHTML += `
                 <div class="checkbox-item">
-                    <input type="checkbox" id="func_${emp.codigo_empregado}" value="${emp.codigo_empregado}" data-empresa="${emp.codigo_empresa}">
-                    <label for="func_${emp.codigo_empregado}">[Empresa ${emp.codigo_empresa}] ${emp.codigo_empregado} - ${emp.nome_empregado}</label>
+                    <input type="checkbox" id="empr_${emp.codigo_empregado}_${emp.codigo_empresa}" value="${valorCheckbox}" checked>
+                    <label for="empr_${emp.codigo_empregado}_${emp.codigo_empresa}">
+                        <span style="color: #8B3A3A; font-weight: bold; margin-right: 5px;">[Emp: ${emp.codigo_empresa}]</span> 
+                        ${emp.codigo_empregado} - ${emp.nome_empregado}
+                    </label>
                 </div>
             `;
         });
 
-        ativarStep('step2');
-
     } catch (erro) {
-        mostrarMensagem('Erro', 'Falha ao buscar empregados.');
+        console.error('Erro ao buscar empregados:', erro);
+        mostrarMensagem('Erro', 'Falha ao buscar a lista de empregados.');
     }
 }
 
 function avancarParaParametros() {
-    const empregadosSelecionados = document.querySelectorAll('#listaEmpregados input:checked');
-    if (empregadosSelecionados.length === 0) {
-        mostrarMensagem('Erro', 'Selecione pelo menos um empregado.'); return;
+    const checkboxesEmpregados = document.querySelectorAll('#listaEmpregados input[type="checkbox"]:checked');
+    if (checkboxesEmpregados.length === 0) {
+        mostrarMensagem('Atenção', 'Selecione pelo menos um empregado para continuar.');
+        return;
     }
     ativarStep('step3');
 }
@@ -173,76 +163,67 @@ function avancarParaParametros() {
 // --- GERAÇÃO DO TXT ---
 
 function gerarPrevia() {
-    const competenciaRaw = document.getElementById('lanCompetencia').value;
+    const comp = document.getElementById('lanCompetencia').value;
     const tipoProcesso = document.getElementById('lanTipoProcesso').value;
-    const rubrica = document.getElementById('lanRubrica').value;
-    const valorRaw = document.getElementById('lanValor').value;
-    const empregadosSelecionados = document.querySelectorAll('#listaEmpregados input:checked');
+    const rubrica = document.getElementById('lanRubrica').value.trim();
+    const valor = document.getElementById('lanValor').value.trim();
 
-    // Validações
-    if (!tipoProcesso) { mostrarMensagem('Erro', 'Selecione o Tipo do Processo.'); return; }
-    if (!rubrica) { mostrarMensagem('Erro', 'Informe o Código da Rubrica.'); return; }
-    
-    // Valida se é um número inteiro maior que zero
-    if (!valorRaw || parseInt(valorRaw) <= 0) { 
-        mostrarMensagem('Erro', 'Informe um valor numérico inteiro maior que zero.'); 
-        return; 
+    if (!tipoProcesso) { mostrarMensagem('Atenção', 'Selecione o Tipo do Processo.'); return; }
+    if (!rubrica || !/^\d+$/.test(rubrica)) { mostrarMensagem('Atenção', 'Informe um Código de Rubrica válido (apenas números).'); return; }
+    if (!valor || !/^\d+$/.test(valor)) { mostrarMensagem('Atenção', 'Informe um Valor válido (apenas números inteiros).'); return; }
+
+    const checkboxesEmpregados = document.querySelectorAll('#listaEmpregados input[type="checkbox"]:checked');
+    const empregadosSelecionados = Array.from(checkboxesEmpregados).map(cb => cb.value);
+
+    if (empregadosSelecionados.length === 0) {
+        mostrarMensagem('Atenção', 'Nenhum empregado selecionado. Volte ao passo 2.');
+        return;
     }
 
-    // Formatações Layout Rigoroso
-    const compParts = competenciaRaw.split('/');
-    const compFormatada = compParts[1] + compParts[0]; // AAAAMM
-    
     const fixo = "10";
-    const rubFormatada = String(rubrica).padStart(9, '0');
+    const compParts = comp.split('/');
+    const compFormatada = compParts[1] + compParts[0]; // AAAA + MM
     const tipoProcFormatado = String(tipoProcesso).padStart(2, '0');
-    
-    // O valor já vem limpo do HTML (apenas dígitos), basta preencher com zeros
-    const valFormatado = String(valorRaw).padStart(9, '0');
+    const rubFormatada = String(rubrica).padStart(9, '0');
+    const valFormatado = String(valor).padStart(9, '0');
 
     conteudoTXTGerado = '';
-    let previaHTML = '';
 
-    empregadosSelecionados.forEach(cb => {
-        const codEmpregado = cb.value;
-        const codEmpresa = cb.getAttribute('data-empresa');
-
-        const empFormatado = String(codEmpregado).padStart(10, '0');
-        const empresaFormatada = String(codEmpresa).padStart(10, '0');
-
-        // Montagem da Linha
-        const linha = `${fixo}${empFormatado}${compFormatada}${rubFormatada}${tipoProcFormatado}${valFormatado}${empresaFormatada}`;
+    empregadosSelecionados.forEach(empData => {
+        const [codEmpresa, codEmpregado] = empData.split('|');
         
-        conteudoTXTGerado += linha + '\n';
-        previaHTML += linha + '\n';
+        const codEmpregadoFormatado = String(codEmpregado).padStart(10, '0');
+        const codEmpresaFormatada = String(codEmpresa).padStart(10, '0');
+
+        conteudoTXTGerado += `${fixo}${codEmpregadoFormatado}${compFormatada}${rubFormatada}${tipoProcFormatado}${valFormatado}${codEmpresaFormatada}\n`;
     });
 
-    document.getElementById('previaTxt').textContent = previaHTML;
+    document.getElementById('previaTxt').textContent = conteudoTXTGerado;
     ativarStep('step4');
 }
 
 function voltarParaEdicao() {
-    document.getElementById('step4').style.display = 'none';
-    document.getElementById('step3').scrollIntoView({ behavior: 'smooth' });
+    ativarStep('step3');
 }
 
 function baixarTXT() {
     if (!conteudoTXTGerado) {
-        mostrarMensagem('Erro', 'Nenhum conteúdo gerado para exportação.'); return;
+        mostrarMensagem('Erro', 'Nenhum conteúdo gerado para exportar.');
+        return;
     }
 
-    const competenciaRaw = document.getElementById('lanCompetencia').value;
-    const compFormatada = competenciaRaw.split('/')[1] + competenciaRaw.split('/')[0];
-
+    const comp = document.getElementById('lanCompetencia').value.replace('/', '-');
+    const rubrica = document.getElementById('lanRubrica').value.trim();
+    
     const blob = new Blob([conteudoTXTGerado], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Lancamentos_Lote_${compFormatada}_${Date.now()}.txt`;
+    a.download = `Lancamento_Lote_Rubrica${rubrica}_${comp}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-
+    
     mostrarMensagem('Sucesso', 'Arquivo TXT baixado com sucesso!');
 }
