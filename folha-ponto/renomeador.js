@@ -63,16 +63,38 @@ async function carregarDadosBase() {
 
 async function selecionarPastaOrigem() {
     try {
+        // Verifica se o navegador suporta a funcionalidade
+        if (!window.showDirectoryPicker) {
+            throw new Error("Seu navegador não suporta a seleção de pastas. Por favor, use o Google Chrome ou Microsoft Edge no computador.");
+        }
+        
         dirHandleOrigem = await window.showDirectoryPicker({ mode: 'read' });
         document.getElementById('pathOrigem').textContent = dirHandleOrigem.name;
-    } catch (erro) { console.log('Seleção cancelada.'); }
+        
+    } catch (erro) { 
+        // Ignora se o usuário apenas clicou em "Cancelar" na janela
+        if (erro.name !== 'AbortError') {
+            console.error(erro);
+            mostrarMensagem('Erro de Permissão', 'Não foi possível abrir o seletor de pastas.\n\nMotivo comum: Você está abrindo o arquivo diretamente (file://). Para acessar pastas, o sistema precisa rodar em um servidor web (http:// ou https://) ou via localhost.\n\nDetalhe técnico: ' + erro.message);
+        }
+    }
 }
 
 async function selecionarPastaDestino() {
     try {
+        if (!window.showDirectoryPicker) {
+            throw new Error("Seu navegador não suporta a seleção de pastas. Por favor, use o Google Chrome ou Microsoft Edge no computador.");
+        }
+        
         dirHandleDestino = await window.showDirectoryPicker({ mode: 'readwrite' });
         document.getElementById('pathDestino').textContent = dirHandleDestino.name;
-    } catch (erro) { console.log('Seleção cancelada.'); }
+        
+    } catch (erro) { 
+        if (erro.name !== 'AbortError') {
+            console.error(erro);
+            mostrarMensagem('Erro de Permissão', 'Não foi possível abrir o seletor de pastas.\n\nMotivo comum: Você está abrindo o arquivo diretamente (file://). Para acessar pastas, o sistema precisa rodar em um servidor web (http:// ou https://) ou via localhost.\n\nDetalhe técnico: ' + erro.message);
+        }
+    }
 }
 
 // --- MOTOR DE REGEX E ANÁLISE ---
