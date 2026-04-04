@@ -11,13 +11,11 @@ let dirHandleOrigem = null;
 let dirHandleDestino = null;
 let regrasCadastradas = [];
 let empresasCadastradas = {};
-let mapeamentosCadastrados = {}; // ✅ Novo: Guarda o dicionário de nomes
+let mapeamentosCadastrados = {};
 let arquivosAnalisados = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) { window.location.href = './index.html'; return; }
-
+    // Formatação do input de competência
     document.getElementById('renCompetencia').addEventListener('input', (e) => {
         let v = e.target.value.replace(/\D/g, '');
         if (v.length >= 2) v = v.substring(0, 2) + '/' + v.substring(2, 6);
@@ -32,9 +30,12 @@ function mostrarMensagem(titulo, mensagem) {
     document.getElementById('messageText').textContent = mensagem;
     document.getElementById('messageModal').classList.add('active');
 }
-function fecharModalMensagem() { document.getElementById('messageModal').classList.remove('active'); }
 
-// --- CARREGAMENTO DE DADOS ---
+function fecharModalMensagem() { 
+    document.getElementById('messageModal').classList.remove('active'); 
+}
+
+// --- CARREGAMENTO DE DADOS (SUPABASE) ---
 
 async function carregarDadosBase() {
     try {
@@ -48,22 +49,22 @@ async function carregarDadosBase() {
             empresasCadastradas[emp.codigo_empresa] = emp.nome_empresa;
         });
 
-        // 3. ✅ Carregar Mapeamento de Nomes de Documentos
+        // 3. Carregar Mapeamento de Nomes de Documentos (De/Para)
         const { data: mapeamentos } = await supabaseClient.from('mapeamento_nomes').select('nome_arquivo, nome_documento');
         (mapeamentos || []).forEach(map => {
             mapeamentosCadastrados[map.nome_arquivo] = map.nome_documento;
         });
 
     } catch (erro) {
-        mostrarMensagem('Erro', 'Falha ao carregar regras, empresas e mapeamentos do banco de dados.');
+        console.error("Erro ao carregar dados base:", erro);
+        mostrarMensagem('Erro', 'Falha ao carregar regras, empresas e mapeamentos do banco de dados. Verifique sua conexão.');
     }
 }
 
-// --- FILE SYSTEM ACCESS API ---
+// --- ✅ FUNÇÕES DE SELEÇÃO DE PASTAS (CORREÇÃO DO ERRO) ---
 
 async function selecionarPastaOrigem() {
     try {
-        // Verifica se o navegador suporta a funcionalidade
         if (!window.showDirectoryPicker) {
             throw new Error("Seu navegador não suporta a seleção de pastas. Por favor, use o Google Chrome ou Microsoft Edge no computador.");
         }
@@ -72,7 +73,6 @@ async function selecionarPastaOrigem() {
         document.getElementById('pathOrigem').textContent = dirHandleOrigem.name;
         
     } catch (erro) { 
-        // Ignora se o usuário apenas clicou em "Cancelar" na janela
         if (erro.name !== 'AbortError') {
             console.error(erro);
             mostrarMensagem('Erro de Permissão', 'Não foi possível abrir o seletor de pastas.\n\nMotivo comum: Você está abrindo o arquivo diretamente (file://). Para acessar pastas, o sistema precisa rodar em um servidor web (http:// ou https://) ou via localhost.\n\nDetalhe técnico: ' + erro.message);
@@ -162,7 +162,7 @@ async function analisarArquivos() {
                     const nomeArqExtraido = matchResult.nome || '';
                     const nomeEmpresa = empresasCadastradas[codigoExtraido];
                     
-                    // ✅ NOVO: Busca o nome mapeado no dicionário. Se não existir, usa o nome original extraído.
+                    // Busca o nome mapeado no dicionário. Se não existir, usa o nome original extraído.
                     const nomeDocumentoMapeado = mapeamentosCadastrados[nomeArqExtraido] || nomeArqExtraido;
                     
                     if (!nomeEmpresa) {
@@ -175,7 +175,7 @@ async function analisarArquivos() {
                         novoNomeBase = novoNomeBase.replace(/{CODIGO_EMPRESA}/g, codigoExtraido);
                         novoNomeBase = novoNomeBase.replace(/{NOME_EMPRESA}/g, nomeEmpresa);
                         novoNomeBase = novoNomeBase.replace(/{NOME_ARQUIVO}/g, nomeArqExtraido);
-                        novoNomeBase = novoNomeBase.replace(/{NOME_DOCUMENTO}/g, nomeDocumentoMapeado); // ✅ Aplica a nova tag
+                        novoNomeBase = novoNomeBase.replace(/{NOME_DOCUMENTO}/g, nomeDocumentoMapeado);
                         novoNomeBase = novoNomeBase.replace(/{MM}/g, mesComp);
                         novoNomeBase = novoNomeBase.replace(/{AAAA}/g, anoComp);
                         novoNomeFinal = novoNomeBase + extensao;
@@ -218,7 +218,6 @@ async function analisarArquivos() {
         }
 
         arquivosAnalisados.forEach(arq => {
-            // Monta a string de exibição do destino (Pasta/Subpasta/Arquivo.pdf)
             const destinoExibicao = arq.caminhoRelativo ? `${arq.caminhoRelativo}/${arq.novoNome}` : arq.novoNome;
             
             tbody.innerHTML += `
@@ -257,13 +256,12 @@ async function executarRenomeacao() {
                 const file = await arq.fileHandle.getFile();
                 
                 // 2. Navegar e Criar Diretórios Dinâmicos
-                let currentDirHandle = dirHandleDestino; // Começa na raiz selecionada
+                let currentDirHandle = dirHandleDestino;
                 
                 if (arq.caminhoRelativo) {
                     const pathParts = arq.caminhoRelativo.split('/');
                     for (const part of pathParts) {
                         if (part.trim() !== '') {
-                            // getDirectoryHandle com create: true cria a pasta se não existir
                             currentDirHandle = await currentDirHandle.getDirectoryHandle(part, { create: true });
                         }
                     }
