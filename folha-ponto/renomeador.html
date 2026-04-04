@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Renomeador em Lote - SCONT</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .renomeador-container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .step-card { background: white; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid var(--primary-color); }
+        .step-title { color: var(--primary-color); margin-bottom: 15px; font-size: 18px; display: flex; align-items: center; gap: 10px; font-weight: 600; }
+        .step-number { background: var(--primary-color); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; }
+        
+        .folder-selector { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding: 15px; background: #F8F9FA; border: 1px solid #E9ECEF; border-radius: 8px; }
+        .folder-path { flex: 1; font-family: monospace; font-size: 13px; color: #6C757D; background: white; padding: 8px; border-radius: 4px; border: 1px solid #DEE2E6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        
+        .preview-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+        .preview-table th { background: #F1F3F5; padding: 10px; text-align: left; border-bottom: 2px solid #DEE2E6; color: #495057; }
+        .preview-table td { padding: 10px; border-bottom: 1px solid #E9ECEF; font-family: monospace; }
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+        .status-ok { background: #D4EDDA; color: #155724; }
+        .status-error { background: #F8D7DA; color: #721C24; }
+        .status-warning { background: #FFF3CD; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-container">
+            <img src="https://scontdf.com.br/wp-content/uploads/elementor/thumbs/LogoScont-peic298y16fua1mv1zkur66kgxw0v6rzhu846yyg3k.png" alt="SCONT" class="logo">
+            <div class="header-info">
+                <h1>SCONT - Renomeador</h1>
+                <div class="header-subtitle">Renomeação e Envio de Arquivos em Lote</div>
+            </div>
+            <div class="header-actions">
+                <button type="button" class="btn btn-small" onclick="window.location.href='./index.html'" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);">← Voltar ao Ponto</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="renomeador-container">
+        
+        <!-- PASSO 1: PARÂMETROS -->
+        <div class="step-card" id="step1">
+            <div class="step-title"><div class="step-number">1</div> Parâmetros Globais</div>
+            <div class="form-group" style="max-width: 200px;">
+                <label for="renCompetencia">Competência (MM/AAAA) *</label>
+                <input type="text" id="renCompetencia" placeholder="Ex: 02/2026" maxlength="7">
+            </div>
+        </div>
+
+        <!-- PASSO 2: PASTAS E CAMINHO DINÂMICO -->
+        <div class="step-card" id="step2">
+            <div class="step-title"><div class="step-number">2</div> Seleção de Pastas e Destino</div>
+            
+            <div class="folder-selector">
+                <button type="button" class="btn btn-secondary" onclick="selecionarPastaOrigem()">📁 Pasta de Origem</button>
+                <div class="folder-path" id="pathOrigem">Nenhuma pasta selecionada...</div>
+            </div>
+            
+            <div class="folder-selector">
+                <button type="button" class="btn btn-secondary" onclick="selecionarPastaDestino()">📂 Pasta Destino Raiz (Ex: Z:\empresas)</button>
+                <div class="folder-path" id="pathDestino">Nenhuma pasta selecionada...</div>
+            </div>
+
+            <!-- ✅ NOVO: CAMINHO DINÂMICO -->
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #E9ECEF;">
+                <label for="caminhoDinamico" style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 5px;">Caminho Dinâmico Interno (Opcional)</label>
+                <input type="text" id="caminhoDinamico" placeholder="Ex: {NOME_EMPRESA}\{AAAA}\{MM}" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px;">
+                
+                <div style="background: #F5F5F5; padding: 12px; border-radius: 6px; margin-top: 10px; font-size: 12px; color: #666; line-height: 1.5;">
+                    <strong>Variáveis Disponíveis para o Caminho:</strong><br>
+                    <code style="background: #E9ECEF; padding: 2px 4px; border-radius: 3px;">{CODIGO_EMPRESA}</code>, 
+                    <code style="background: #E9ECEF; padding: 2px 4px; border-radius: 3px;">{NOME_EMPRESA}</code>, 
+                    <code style="background: #E9ECEF; padding: 2px 4px; border-radius: 3px;">{AAAA}</code>, 
+                    <code style="background: #E9ECEF; padding: 2px 4px; border-radius: 3px;">{MM}</code><br>
+                    <em style="display: block; margin-top: 5px; color: #8B3A3A;">Nota: As subpastas serão criadas automaticamente dentro da "Pasta Destino Raiz" selecionada acima. Use barras (\ ou /) para separar as pastas.</em>
+                </div>
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="analisarArquivos()" style="margin-top: 20px; width: 100%;">
+                🔍 Analisar Arquivos
+            </button>
+        </div>
+
+        <!-- PASSO 3: PRÉVIA -->
+        <div class="step-card" id="step3" style="display: none;">
+            <div class="step-title"><div class="step-number">3</div> Prévia da Renomeação e Movimentação</div>
+            
+            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #DEE2E6; border-radius: 6px;">
+                <table class="preview-table">
+                    <thead>
+                        <tr>
+                            <th>Arquivo Original</th>
+                            <th>Destino Final (Caminho + Novo Nome)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewBody">
+                        <!-- Preenchido via JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top: 20px; padding: 15px; background: #FFF3CD; border-radius: 6px; color: #856404; font-size: 13px; display: none;" id="avisoErros">
+                ⚠️ Atenção: Existem arquivos com erro. Eles serão ignorados durante o processamento.
+            </div>
+
+            <button type="button" class="btn btn-primary" id="btnExecutar" onclick="executarRenomeacao()" style="margin-top: 20px; width: 100%; background: var(--success-color); display: none;">
+                🚀 Criar Pastas, Renomear e Copiar Arquivos
+            </button>
+        </div>
+
+    </div>
+
+    <!-- MODAL DE MENSAGEM -->
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="messageTitle">Mensagem</h3><button type="button" class="modal-close" onclick="fecharModalMensagem()">×</button></div>
+            <div class="modal-body"><p id="messageText"></p></div>
+            <div class="modal-footer"><button type="button" class="btn btn-primary" onclick="fecharModalMensagem()">OK</button></div>
+        </div>
+    </div>
+
+    <script src="renomeador.js"></script>
+</body>
+</html>

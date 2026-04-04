@@ -495,6 +495,59 @@
         function mostrarMensagem(titulo, mensagem) { document.getElementById('messageTitle').textContent = titulo; document.getElementById('messageText').textContent = mensagem; document.getElementById('messageModal').classList.add('active'); }
         function fecharModalMensagem() { document.getElementById('messageModal').classList.remove('active'); }
         function voltarParaPonto() { window.location.href = './index.html'; }
+
+     // --- ✅ REGRAS DE RENOMEAÇÃO ---
+        
+        // Adicione esta chamada na inicialização (dentro do DOMContentLoaded):
+        // carregarRegras();
+
+        async function carregarRegras() {
+            try {
+                const { data, error } = await supabaseClient.from('regras_renomeacao').select('*').order('data_criacao', { ascending: false });
+                if (error) throw error;
+                renderizarTabelaRegras(data || []);
+            } catch (erro) { mostrarMensagem('Erro', 'Erro ao carregar regras de renomeação.'); }
+        }
+
+        function renderizarTabelaRegras(regras) {
+            const tbody = document.getElementById('regrasTableBody');
+            tbody.innerHTML = '';
+            if (regras.length === 0) { tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #95A5A6;">Nenhuma regra cadastrada</td></tr>'; return; }
+            regras.forEach(regra => {
+                tbody.innerHTML += `<tr>
+                    <td style="font-family: monospace; font-size: 12px;">${regra.padrao_de}</td>
+                    <td style="font-family: monospace; font-size: 12px; color: #8B3A3A;">${regra.padrao_para}</td>
+                    <td><button type="button" class="btn-delete" onclick="deletarRegra(${regra.id})">Deletar</button></td>
+                </tr>`;
+            });
+        }
+
+        async function adicionarRegra() {
+            const padraoDe = document.getElementById('padraoDe').value.trim();
+            const padraoPara = document.getElementById('padraoPara').value.trim();
+            
+            if (!padraoDe || !padraoPara) { mostrarStatus('statusRegras', 'Preencha ambos os padrões.', 'error'); return; }
+            
+            try {
+                const { error } = await supabaseClient.from('regras_renomeacao').insert([{ padrao_de: padraoDe, padrao_para: padraoPara }]);
+                if (error) throw error;
+                
+                document.getElementById('padraoDe').value = '';
+                document.getElementById('padraoPara').value = '';
+                mostrarStatus('statusRegras', '✅ Regra salva com sucesso!', 'success');
+                carregarRegras();
+            } catch (erro) { mostrarStatus('statusRegras', 'Erro ao salvar regra: ' + erro.message, 'error'); }
+        }
+
+        async function deletarRegra(id) {
+            if (!confirm('Tem certeza que deseja deletar esta regra?')) return;
+            try {
+                const { error } = await supabaseClient.from('regras_renomeacao').delete().eq('id', id);
+                if (error) throw error;
+                mostrarStatus('statusRegras', '✅ Regra deletada com sucesso!', 'success');
+                carregarRegras();
+            } catch (erro) { mostrarStatus('statusRegras', 'Erro ao deletar regra: ' + erro.message, 'error'); }
+        }
     </script>
 </body>
 </html>
