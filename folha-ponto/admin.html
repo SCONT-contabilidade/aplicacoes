@@ -174,28 +174,29 @@
             </div>
         </div>
 
-        <!-- ABA REGRAS DE RENOMEAÇÃO -->
+        <!-- ✅ ABA REGRAS DE RENOMEAÇÃO (ATUALIZADA) -->
         <div id="regrasRenomeacao" class="admin-tab-content">
             <div class="admin-section">
                 <h2>Regras de Renomeação de Arquivos</h2>
                 <div id="statusRegras" class="status-message"></div>
                 
-                <div style="margin-bottom: 30px;">
-                    <h3 style="color: #2C3E50; margin-bottom: 15px;">Cadastrar Nova Regra</h3>
+                <!-- SEÇÃO 1: REGRAS DE PADRÃO -->
+                <div style="margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #E0E0E0;">
+                    <h3 style="color: #2C3E50; margin-bottom: 15px;">1. Padrões de Renomeação</h3>
                     
                     <div style="background: #F5F5F5; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 13px;">
                         <p><strong>Tags Disponíveis:</strong></p>
-                        <p>Use estas tags exatamente como estão escritas (com as chaves) para criar os padrões.</p>
                         <ul style="margin-top: 5px; padding-left: 20px; color: #666;">
                             <li><code>{CODIGO_EMPRESA}</code> : Extrai o código (DE) ou insere o código (PARA).</li>
                             <li><code>{NOME_EMPRESA}</code> : Insere o nome da empresa (apenas no PARA).</li>
-                            <li><code>{NOME_ARQUIVO}</code> : Extrai o nome original (DE) ou insere o nome (PARA).</li>
+                            <li><code>{NOME_ARQUIVO}</code> : Extrai o nome original (DE).</li>
+                            <li><code>{NOME_DOCUMENTO}</code> : Insere o nome mapeado (apenas no PARA). Requer cadastro no passo 2 abaixo.</li>
                             <li><code>{MM}</code> : Mês da competência (2 dígitos).</li>
                             <li><code>{AAAA}</code> : Ano da competência (4 dígitos).</li>
                             <li><code>{IGNORAR}</code> : Ignora uma parte do texto original (apenas no DE).</li>
                         </ul>
                         <p style="margin-top: 10px;"><strong>Exemplo DE:</strong> <code>{CODIGO_EMPRESA}_{NOME_ARQUIVO}_{IGNORAR}_{MM}{AAAA}</code></p>
-                        <p><strong>Exemplo PARA:</strong> <code>{NOME_ARQUIVO}_{NOME_EMPRESA}_{AAAA}_{MM}</code></p>
+                        <p><strong>Exemplo PARA:</strong> <code>{NOME_DOCUMENTO}_{NOME_EMPRESA}_{AAAA}_{MM}</code></p>
                     </div>
 
                     <div class="form-group">
@@ -205,19 +206,46 @@
                     
                     <div class="form-group">
                         <label for="padraoPara">Padrão PARA (Novo Formato do Arquivo) *</label>
-                        <input type="text" id="padraoPara" placeholder="Ex: {NOME_ARQUIVO}_{NOME_EMPRESA}_{AAAA}_{MM}" required>
+                        <input type="text" id="padraoPara" placeholder="Ex: {NOME_DOCUMENTO}_{NOME_EMPRESA}_{AAAA}_{MM}" required>
                     </div>
                     
-                    <button type="button" class="btn-save" onclick="adicionarRegra()">➕ Salvar Regra</button>
+                    <button type="button" class="btn-save" onclick="adicionarRegra()">➕ Salvar Padrão</button>
+
+                    <h4 style="color: #2C3E50; margin-top: 20px; margin-bottom: 10px;">Padrões Cadastrados</h4>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead><tr><th>Padrão DE</th><th>Padrão PARA</th><th>Ações</th></tr></thead>
+                            <tbody id="regrasTableBody"><tr><td colspan="3" style="text-align: center; color: #95A5A6;">Carregando...</td></tr></tbody>
+                        </table>
+                    </div>
                 </div>
 
-                <h3 style="color: #2C3E50; margin-bottom: 15px;">Regras Cadastradas</h3>
-                <div class="table-container">
-                    <table class="admin-table">
-                        <thead><tr><th>Padrão DE</th><th>Padrão PARA</th><th>Ações</th></tr></thead>
-                        <tbody id="regrasTableBody"><tr><td colspan="3" style="text-align: center; color: #95A5A6;">Carregando...</td></tr></tbody>
-                    </table>
+                <!-- SEÇÃO 2: MAPEAMENTO DE NOMES -->
+                <div>
+                    <h3 style="color: #2C3E50; margin-bottom: 15px;">2. Dicionário de Nomes de Documentos</h3>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Associe o texto extraído pela tag <code>{NOME_ARQUIVO}</code> ao novo texto que será inserido pela tag <code>{NOME_DOCUMENTO}</code>.</p>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="mapNomeArquivo">Nome Original (Extraído de {NOME_ARQUIVO}) *</label>
+                            <input type="text" id="mapNomeArquivo" placeholder="Ex: ExtratoMensal" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="mapNomeDocumento">Novo Nome (Inserido em {NOME_DOCUMENTO}) *</label>
+                            <input type="text" id="mapNomeDocumento" placeholder="Ex: Folha de Pagamento" required>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-save" onclick="adicionarMapeamento()">➕ Salvar Mapeamento</button>
+
+                    <h4 style="color: #2C3E50; margin-top: 20px; margin-bottom: 10px;">Mapeamentos Cadastrados</h4>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead><tr><th>Nome Original ({NOME_ARQUIVO})</th><th>Novo Nome ({NOME_DOCUMENTO})</th><th>Ações</th></tr></thead>
+                            <tbody id="mapeamentoTableBody"><tr><td colspan="3" style="text-align: center; color: #95A5A6;">Carregando...</td></tr></tbody>
+                        </table>
+                    </div>
                 </div>
+
             </div>
         </div>
 
@@ -286,7 +314,8 @@
             carregarEmpresas();
             carregarEmpregados();
             carregarRubricas();
-            carregarRegras(); // Carrega as regras de renomeação
+            carregarRegras();
+            carregarMapeamentos(); // ✅ Carrega o dicionário de nomes
             configurarUpload();
         });
 
@@ -499,6 +528,59 @@
             } catch (erro) { mostrarStatus('statusRegras', 'Erro ao deletar regra: ' + erro.message, 'error'); }
         }
 
+        // --- ✅ MAPEAMENTO DE NOMES DE DOCUMENTOS ---
+        async function carregarMapeamentos() {
+            try {
+                const { data, error } = await supabaseClient.from('mapeamento_nomes').select('*').order('nome_arquivo', { ascending: true });
+                if (error) throw error;
+                renderizarTabelaMapeamentos(data || []);
+            } catch (erro) { mostrarMensagem('Erro', 'Erro ao carregar mapeamentos.'); }
+        }
+
+        function renderizarTabelaMapeamentos(mapeamentos) {
+            const tbody = document.getElementById('mapeamentoTableBody');
+            tbody.innerHTML = '';
+            if (mapeamentos.length === 0) { tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #95A5A6;">Nenhum mapeamento cadastrado</td></tr>'; return; }
+            mapeamentos.forEach(map => {
+                tbody.innerHTML += `<tr>
+                    <td>${map.nome_arquivo}</td>
+                    <td style="color: #8B3A3A; font-weight: bold;">${map.nome_documento}</td>
+                    <td><button type="button" class="btn-delete" onclick="deletarMapeamento(${map.id})">Deletar</button></td>
+                </tr>`;
+            });
+        }
+
+        async function adicionarMapeamento() {
+            const nomeArquivo = document.getElementById('mapNomeArquivo').value.trim();
+            const nomeDocumento = document.getElementById('mapNomeDocumento').value.trim();
+            
+            if (!nomeArquivo || !nomeDocumento) { mostrarStatus('statusRegras', 'Preencha ambos os campos do mapeamento.', 'error'); return; }
+            
+            try {
+                const { error } = await supabaseClient.from('mapeamento_nomes').upsert([{ 
+                    nome_arquivo: nomeArquivo, 
+                    nome_documento: nomeDocumento 
+                }], { onConflict: 'nome_arquivo' });
+                
+                if (error) throw error;
+                
+                document.getElementById('mapNomeArquivo').value = '';
+                document.getElementById('mapNomeDocumento').value = '';
+                mostrarStatus('statusRegras', '✅ Mapeamento salvo com sucesso!', 'success');
+                carregarMapeamentos();
+            } catch (erro) { mostrarStatus('statusRegras', 'Erro ao salvar mapeamento: ' + erro.message, 'error'); }
+        }
+
+        async function deletarMapeamento(id) {
+            if (!confirm('Tem certeza que deseja deletar este mapeamento?')) return;
+            try {
+                const { error } = await supabaseClient.from('mapeamento_nomes').delete().eq('id', id);
+                if (error) throw error;
+                mostrarStatus('statusRegras', '✅ Mapeamento deletado com sucesso!', 'success');
+                carregarMapeamentos();
+            } catch (erro) { mostrarStatus('statusRegras', 'Erro ao deletar mapeamento: ' + erro.message, 'error'); }
+        }
+
         // --- IMPORTAÇÃO ---
         function configurarUpload() {
             const uploadArea = document.getElementById('uploadArea');
@@ -516,63 +598,45 @@
                 
                 const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
                 
-                // 1. Processar aba de empresas
                 const empresasSheet = workbook.Sheets['Empresas']; 
                 if (!empresasSheet) throw new Error('Aba "Empresas" não encontrada');
                 const empresasData = XLSX.utils.sheet_to_json(empresasSheet, { header: ['codigo_empresa', 'nome_empresa'], defval: '' }).filter(row => row.codigo_empresa && row.nome_empresa);
                 
-                // 2. Processar aba de empregados
                 const empregadosSheet = workbook.Sheets['Empregados']; 
                 if (!empregadosSheet) throw new Error('Aba "Empregados" não encontrada');
                 const empregadosData = XLSX.utils.sheet_to_json(empregadosSheet, { header: ['codigo_empresa', 'codigo_empregado', 'nome_empregado'], defval: '' }).filter(row => row.codigo_empresa && row.codigo_empregado && row.nome_empregado);
                 
-                // 3. Processar aba de rubricas
                 const rubricasSheet = workbook.Sheets['Rubricas'];
                 let rubricasData = [];
                 if (rubricasSheet) {
                     rubricasData = XLSX.utils.sheet_to_json(rubricasSheet, { header: ['codigo_empresa', 'codigo_rubrica', 'evento'], defval: '' }).filter(row => row.codigo_empresa && row.codigo_rubrica && row.evento);
-                } else {
-                    console.warn('Aba "Rubricas" não encontrada na planilha. Importando apenas Empresas e Empregados.');
                 }
                 
                 mostrarStatus('statusImportar', 'Limpando dados existentes...', 'info'); 
                 document.getElementById('progressBar').style.width = '20%';
                 
-                // A ordem de deleção importa por causa das chaves estrangeiras
                 await supabaseClient.from('rubricas').delete().neq('id', 0);
                 await supabaseClient.from('empregados').delete().neq('id', 0); 
                 await supabaseClient.from('empresas').delete().neq('id', 0);
                 
                 mostrarStatus('statusImportar', 'Importando empresas...', 'info'); 
                 document.getElementById('progressBar').style.width = '40%';
-                if (empresasData.length > 0) { 
-                    const { error } = await supabaseClient.from('empresas').insert(empresasData); 
-                    if (error) throw error; 
-                }
+                if (empresasData.length > 0) { const { error } = await supabaseClient.from('empresas').insert(empresasData); if (error) throw error; }
                 
                 mostrarStatus('statusImportar', 'Importando empregados...', 'info'); 
                 document.getElementById('progressBar').style.width = '60%';
-                if (empregadosData.length > 0) { 
-                    const { error } = await supabaseClient.from('empregados').insert(empregadosData); 
-                    if (error) throw error; 
-                }
+                if (empregadosData.length > 0) { const { error } = await supabaseClient.from('empregados').insert(empregadosData); if (error) throw error; }
                 
                 mostrarStatus('statusImportar', 'Importando rubricas...', 'info'); 
                 document.getElementById('progressBar').style.width = '80%';
-                if (rubricasData.length > 0) { 
-                    const { error } = await supabaseClient.from('rubricas').insert(rubricasData); 
-                    if (error) throw error; 
-                }
+                if (rubricasData.length > 0) { const { error } = await supabaseClient.from('rubricas').insert(rubricasData); if (error) throw error; }
                 
                 document.getElementById('progressBar').style.width = '100%';
                 setTimeout(() => {
                     document.getElementById('importProgress').style.display = 'none';
                     mostrarStatus('statusImportar', `✅ Importação concluída!\n${empresasData.length} empresas, ${empregadosData.length} empregados e ${rubricasData.length} rubricas.`, 'success');
                     
-                    carregarEmpresas(); 
-                    carregarEmpregados(); 
-                    carregarRubricas(); 
-                    
+                    carregarEmpresas(); carregarEmpregados(); carregarRubricas(); 
                     document.getElementById('fileInput').value = '';
                 }, 1000);
                 

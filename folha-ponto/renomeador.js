@@ -1,5 +1,5 @@
 /**
- * SCONT - Renomeador em Lote com Criação de Pastas Dinâmicas
+ * SCONT - Renomeador em Lote com Criação de Pastas Dinâmicas e Dicionário de Nomes
  * Arquivo: renomeador.js
  */
 
@@ -11,6 +11,7 @@ let dirHandleOrigem = null;
 let dirHandleDestino = null;
 let regrasCadastradas = [];
 let empresasCadastradas = {};
+let mapeamentosCadastrados = {}; // ✅ Novo: Guarda o dicionário de nomes
 let arquivosAnalisados = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -37,15 +38,24 @@ function fecharModalMensagem() { document.getElementById('messageModal').classLi
 
 async function carregarDadosBase() {
     try {
+        // 1. Carregar Regras de Renomeação
         const { data: regras } = await supabaseClient.from('regras_renomeacao').select('*');
         regrasCadastradas = regras || [];
 
+        // 2. Carregar Empresas (para o dicionário de códigos)
         const { data: empresas } = await supabaseClient.from('empresas').select('codigo_empresa, nome_empresa');
         (empresas || []).forEach(emp => {
             empresasCadastradas[emp.codigo_empresa] = emp.nome_empresa;
         });
+
+        // 3. ✅ Carregar Mapeamento de Nomes de Documentos
+        const { data: mapeamentos } = await supabaseClient.from('mapeamento_nomes').select('nome_arquivo, nome_documento');
+        (mapeamentos || []).forEach(map => {
+            mapeamentosCadastrados[map.nome_arquivo] = map.nome_documento;
+        });
+
     } catch (erro) {
-        mostrarMensagem('Erro', 'Falha ao carregar regras e empresas do banco de dados.');
+        mostrarMensagem('Erro', 'Falha ao carregar regras, empresas e mapeamentos do banco de dados.');
     }
 }
 
@@ -130,6 +140,9 @@ async function analisarArquivos() {
                     const nomeArqExtraido = matchResult.nome || '';
                     const nomeEmpresa = empresasCadastradas[codigoExtraido];
                     
+                    // ✅ NOVO: Busca o nome mapeado no dicionário. Se não existir, usa o nome original extraído.
+                    const nomeDocumentoMapeado = mapeamentosCadastrados[nomeArqExtraido] || nomeArqExtraido;
+                    
                     if (!nomeEmpresa) {
                         status = `Empresa ${codigoExtraido} não encontrada`;
                         classeStatus = 'status-warning';
@@ -140,6 +153,7 @@ async function analisarArquivos() {
                         novoNomeBase = novoNomeBase.replace(/{CODIGO_EMPRESA}/g, codigoExtraido);
                         novoNomeBase = novoNomeBase.replace(/{NOME_EMPRESA}/g, nomeEmpresa);
                         novoNomeBase = novoNomeBase.replace(/{NOME_ARQUIVO}/g, nomeArqExtraido);
+                        novoNomeBase = novoNomeBase.replace(/{NOME_DOCUMENTO}/g, nomeDocumentoMapeado); // ✅ Aplica a nova tag
                         novoNomeBase = novoNomeBase.replace(/{MM}/g, mesComp);
                         novoNomeBase = novoNomeBase.replace(/{AAAA}/g, anoComp);
                         novoNomeFinal = novoNomeBase + extensao;
