@@ -5,6 +5,7 @@
 
 const SUPABASE_URL = 'https://udnikmolgryzczalcbbz.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkbmlrbW9sZ3J5emN6YWxjYmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDQzNTUsImV4cCI6MjA5MDcyMDM1NX0.9vCwDkmxhrLAc-UxKpUxiVHF0BBh8OIdGZPKpTWu-lI';
+
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let dirHandleOrigem = null;
@@ -12,6 +13,7 @@ let dirHandleDestino = null;
 let regrasCadastradas = [];
 let empresasCadastradas = {};
 let mapeamentosCadastrados = {};
+let empregadosCadastrados = [];
 let arquivosAnalisados = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -31,8 +33,8 @@ function mostrarMensagem(titulo, mensagem) {
     document.getElementById('messageModal').classList.add('active');
 }
 
-function fecharModalMensagem() { 
-    document.getElementById('messageModal').classList.remove('active'); 
+function fecharModalMensagem() {
+    document.getElementById('messageModal').classList.remove('active');
 }
 
 // --- CARREGAMENTO DE DADOS (SUPABASE) ---
@@ -55,24 +57,29 @@ async function carregarDadosBase() {
             mapeamentosCadastrados[map.nome_arquivo] = map.nome_documento;
         });
 
+        // 4. Carregar Relação de Empregados
+        const { data: empregados } = await supabaseClient.from('empregados').select('*');
+        empregadosCadastrados = empregados || [];
+        console.log('Empregados carregados:', empregadosCadastrados);
+
     } catch (erro) {
         console.error("Erro ao carregar dados base:", erro);
-        mostrarMensagem('Erro', 'Falha ao carregar regras, empresas e mapeamentos do banco de dados. Verifique sua conexão.');
+        mostrarMensagem('Erro', 'Falha ao carregar regras, empresas, mapeamentos e empregados do banco de dados. Verifique sua conexão.');
     }
 }
 
-// --- ✅ FUNÇÕES DE SELEÇÃO DE PASTAS (CORREÇÃO DO ERRO) ---
+// --- ✅ FUNÇÕES DE SELEÇÃO DE PASTAS ---
 
 async function selecionarPastaOrigem() {
     try {
         if (!window.showDirectoryPicker) {
             throw new Error("Seu navegador não suporta a seleção de pastas. Por favor, use o Google Chrome ou Microsoft Edge no computador.");
         }
-        
+
         dirHandleOrigem = await window.showDirectoryPicker({ mode: 'read' });
         document.getElementById('pathOrigem').textContent = dirHandleOrigem.name;
-        
-    } catch (erro) { 
+
+    } catch (erro) {
         if (erro.name !== 'AbortError') {
             console.error(erro);
             mostrarMensagem('Erro de Permissão', 'Não foi possível abrir o seletor de pastas.\n\nMotivo comum: Você está abrindo o arquivo diretamente (file://). Para acessar pastas, o sistema precisa rodar em um servidor web (http:// ou https://) ou via localhost.\n\nDetalhe técnico: ' + erro.message);
@@ -85,11 +92,11 @@ async function selecionarPastaDestino() {
         if (!window.showDirectoryPicker) {
             throw new Error("Seu navegador não suporta a seleção de pastas. Por favor, use o Google Chrome ou Microsoft Edge no computador.");
         }
-        
+
         dirHandleDestino = await window.showDirectoryPicker({ mode: 'readwrite' });
         document.getElementById('pathDestino').textContent = dirHandleDestino.name;
-        
-    } catch (erro) { 
+
+    } catch (erro) {
         if (erro.name !== 'AbortError') {
             console.error(erro);
             mostrarMensagem('Erro de Permissão', 'Não foi possível abrir o seletor de pastas.\n\nMotivo comum: Você está abrindo o arquivo diretamente (file://). Para acessar pastas, o sistema precisa rodar em um servidor web (http:// ou https://) ou via localhost.\n\nDetalhe técnico: ' + erro.message);
@@ -111,18 +118,32 @@ function criarRegexDoPadrao(padraoDe) {
 
 async function analisarArquivos() {
     const competencia = document.getElementById('renCompetencia').value;
-    if (!/^(0[1-9]|1[0-2])\/\d{4}$/.test(competencia)) { mostrarMensagem('Erro', 'Informe uma competência válida (MM/AAAA).'); return; }
-    if (!dirHandleOrigem) { mostrarMensagem('Erro', 'Selecione a pasta de origem.'); return; }
-    if (!dirHandleDestino) { mostrarMensagem('Erro', 'Selecione a pasta de destino raiz.'); return; }
-    if (regrasCadastradas.length === 0) { mostrarMensagem('Erro', 'Nenhuma regra de renomeação cadastrada no sistema.'); return; }
+    if (!/^(0[1-9]|1[0-2])\/\d{4}$/.test(competencia)) {
+        mostrarMensagem('Erro', 'Informe uma competência válida (MM/AAAA).');
+        return;
+    }
+
+    if (!dirHandleOrigem) {
+        mostrarMensagem('Erro', 'Selecione a pasta de origem.');
+        return;
+    }
+
+    if (!dirHandleDestino) {
+        mostrarMensagem('Erro', 'Selecione a pasta de destino raiz.');
+        return;
+    }
+
+    if (regrasCadastradas.length === 0) {
+        mostrarMensagem('Erro', 'Nenhuma regra de renomeação cadastrada no sistema.');
+        return;
+    }
 
     const [mesComp, anoComp] = competencia.split('/');
     const caminhoDinamicoRaw = document.getElementById('caminhoDinamico').value.trim();
-    
+
     arquivosAnalisados = [];
     let temErros = false;
     let temSucesso = false;
-
     const tbody = document.getElementById('previewBody');
     tbody.innerHTML = '<tr><td colspan="3" style="text-align: center;">Analisando arquivos...</td></tr>';
     document.getElementById('step3').style.display = 'block';
@@ -161,10 +182,15 @@ async function analisarArquivos() {
                     const codigoExtraido = matchResult.codigo;
                     const nomeArqExtraido = matchResult.nome || '';
                     const nomeEmpresa = empresasCadastradas[codigoExtraido];
-                    
+
                     // Busca o nome mapeado no dicionário. Se não existir, usa o nome original extraído.
                     const nomeDocumentoMapeado = mapeamentosCadastrados[nomeArqExtraido] || nomeArqExtraido;
-                    
+
+                    // Buscar empregados da empresa
+                    const empregadosDaEmpresa = empregadosCadastrados.filter(
+                        emp => emp.codigo_empresa === codigoExtraido
+                    );
+
                     if (!nomeEmpresa) {
                         status = `Empresa ${codigoExtraido} não encontrada`;
                         classeStatus = 'status-warning';
@@ -187,7 +213,7 @@ async function analisarArquivos() {
                             caminhoFinal = caminhoFinal.replace(/{NOME_EMPRESA}/g, nomeEmpresa);
                             caminhoFinal = caminhoFinal.replace(/{MM}/g, mesComp);
                             caminhoFinal = caminhoFinal.replace(/{AAAA}/g, anoComp);
-                            
+
                             // Normalizar barras (trocar \ por /) e remover barras nas pontas
                             caminhoFinal = caminhoFinal.replace(/\/g, '/').replace(/^\/+|\/+$/g, '');
                         }
@@ -212,6 +238,7 @@ async function analisarArquivos() {
 
         // Renderizar Tabela
         tbody.innerHTML = '';
+
         if (arquivosAnalisados.length === 0) {
             tbody.innerHTML = '<tr><td colspan="3" style="text-align: center;">Nenhum arquivo encontrado na pasta.</td></tr>';
             return;
@@ -219,7 +246,7 @@ async function analisarArquivos() {
 
         arquivosAnalisados.forEach(arq => {
             const destinoExibicao = arq.caminhoRelativo ? `${arq.caminhoRelativo}/${arq.novoNome}` : arq.novoNome;
-            
+
             tbody.innerHTML += `
                 <tr>
                     <td>${arq.nomeOriginal}</td>
@@ -245,7 +272,7 @@ async function executarRenomeacao() {
     if (arquivosParaProcessar.length === 0) return;
 
     mostrarMensagem('Processando', 'Criando pastas e copiando arquivos. Por favor, aguarde...');
-    
+
     let sucessoCount = 0;
     let erroCount = 0;
 
@@ -254,10 +281,10 @@ async function executarRenomeacao() {
             try {
                 // 1. Ler o arquivo original
                 const file = await arq.fileHandle.getFile();
-                
+
                 // 2. Navegar e Criar Diretórios Dinâmicos
                 let currentDirHandle = dirHandleDestino;
-                
+
                 if (arq.caminhoRelativo) {
                     const pathParts = arq.caminhoRelativo.split('/');
                     for (const part of pathParts) {
@@ -266,15 +293,15 @@ async function executarRenomeacao() {
                         }
                     }
                 }
-                
+
                 // 3. Criar o novo arquivo na pasta de destino final
                 const newFileHandle = await currentDirHandle.getFileHandle(arq.novoNome, { create: true });
-                
+
                 // 4. Escrever os dados no novo arquivo
                 const writable = await newFileHandle.createWritable();
                 await writable.write(file);
                 await writable.close();
-                
+
                 sucessoCount++;
             } catch (e) {
                 console.error(`Erro ao processar ${arq.nomeOriginal}:`, e);
@@ -283,9 +310,9 @@ async function executarRenomeacao() {
         }
 
         mostrarMensagem('Concluído', `Processamento finalizado!\n\n✅ Sucesso: ${sucessoCount} arquivos copiados\n❌ Erros: ${erroCount} arquivos\n\nOs arquivos originais foram mantidos na pasta de origem.`);
-        
+
         document.getElementById('step3').style.display = 'none';
-        
+
     } catch (erro) {
         mostrarMensagem('Erro', 'Falha crítica ao gravar na pasta de destino. Verifique as permissões.');
     }

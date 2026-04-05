@@ -981,3 +981,24 @@ tbody tr.dsr {
     cursor: pointer;
     color: var(--text-primary);
 }
+
+/* ✅ NOVO: Ocultar todos os steps por padrão */
+.step-card {
+    display: none;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ✅ NOVO: Mostrar apenas o step ativo */
+.step-card.active {
+    display: block;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ✅ NOVO: Step1 sempre visível */
+#step1 {
+    display: block;
+    opacity: 1;
+    pointer-events: auto;
+}

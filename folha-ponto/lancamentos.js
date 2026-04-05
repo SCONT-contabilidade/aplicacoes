@@ -5,6 +5,7 @@
 
 const SUPABASE_URL = 'https://udnikmolgryzczalcbbz.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkbmlrbW9sZ3J5emN6YWxjYmJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDQzNTUsImV4cCI6MjA5MDcyMDM1NX0.9vCwDkmxhrLAc-UxKpUxiVHF0BBh8OIdGZPKpTWu-lI';
+
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let conteudoTXTGerado = '';
@@ -35,15 +36,33 @@ function fecharModalMensagem() {
     document.getElementById('messageModal').classList.remove('active');
 }
 
+// ✅ CORRIGIDO: Função ativarStep com CSS inline override
 function ativarStep(stepId) {
-    document.querySelectorAll('.step-card').forEach(card => card.classList.remove('active'));
-    document.getElementById(stepId).classList.add('active');
+    // Remover todos os steps
+    document.querySelectorAll('.step-card').forEach(card => {
+        card.style.display = 'none';
+        card.style.opacity = '0.5';
+        card.style.pointerEvents = 'none';
+        card.classList.remove('active');
+    });
+
+    // Ativar apenas o step desejado
+    const stepAtivo = document.getElementById(stepId);
+    if (stepAtivo) {
+        stepAtivo.style.display = 'block';
+        stepAtivo.style.opacity = '1';
+        stepAtivo.style.pointerEvents = 'auto';
+        stepAtivo.classList.add('active');
+        
+        // Scroll para o step ativo
+        stepAtivo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 function filtrarLista(inputId, listId) {
     const termo = document.getElementById(inputId).value.toLowerCase();
     const itens = document.querySelectorAll(`#${listId} .checkbox-item`);
-    
+
     itens.forEach(item => {
         const texto = item.textContent.toLowerCase();
         item.style.display = texto.includes(termo) ? 'flex' : 'none';
@@ -53,7 +72,7 @@ function filtrarLista(inputId, listId) {
 function selecionarTodos(containerId, selecionar) {
     const itensVisiveis = Array.from(document.querySelectorAll(`#${containerId} .checkbox-item`))
                                .filter(item => item.style.display !== 'none');
-    
+
     itensVisiveis.forEach(item => {
         const checkbox = item.querySelector('input[type="checkbox"]');
         if (checkbox) checkbox.checked = selecionar;
@@ -76,6 +95,7 @@ async function carregarEmpresas() {
         if (error) throw error;
 
         container.innerHTML = '';
+
         if (!data || data.length === 0) {
             container.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">Nenhuma empresa cadastrada no sistema.</div>';
             return;
@@ -98,11 +118,14 @@ async function carregarEmpresas() {
 
 async function buscarEmpregados() {
     const comp = document.getElementById('lanCompetencia').value;
+
+    // ✅ CORRIGIDO: Validar competência
     if (!/^(0[1-9]|1[0-2])\/\d{4}$/.test(comp)) {
         mostrarMensagem('Atenção', 'Informe uma competência válida (MM/AAAA).');
         return;
     }
 
+    // ✅ CORRIGIDO: Validar seleção de empresas
     const checkboxesEmpresas = document.querySelectorAll('#listaEmpresas input[type="checkbox"]:checked');
     const empresasSelecionadas = Array.from(checkboxesEmpresas).map(cb => cb.value);
 
@@ -112,51 +135,105 @@ async function buscarEmpregados() {
     }
 
     const container = document.getElementById('listaEmpregados');
+    
+    // ✅ CORRIGIDO: Verificar se o container existe
+    if (!container) {
+        console.error('Container #listaEmpregados não encontrado no HTML!');
+        mostrarMensagem('Erro', 'Elemento listaEmpregados não encontrado no HTML.');
+        return;
+    }
+
     container.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">Buscando empregados vinculados...</div>';
-    ativarStep('step2');
 
     try {
-        // Busca os empregados vinculados às empresas selecionadas
+        console.log('Empresas selecionadas:', empresasSelecionadas);
+
         const { data, error } = await supabaseClient
             .from('empregados')
-            .select('codigo_empresa, codigo_empregado, nome_empregado')
+            .select('*')
             .in('codigo_empresa', empresasSelecionadas)
             .order('codigo_empresa', { ascending: true })
             .order('nome_empregado', { ascending: true });
 
-        if (error) throw error;
+        console.log('Resposta do Supabase:', { data, error });
 
-        container.innerHTML = '';
+        if (error) {
+            console.error('Erro na query:', error);
+            throw error;
+        }
+
         if (!data || data.length === 0) {
-            container.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">Nenhum empregado encontrado para as empresas selecionadas.</div>';
+            container.innerHTML = `<div style="padding: 10px; text-align: center; color: #666;">
+                Nenhum empregado encontrado para as empresas selecionadas.
+                <br><small style="color: #999;">Empresas buscadas: ${empresasSelecionadas.join(', ')}</small>
+            </div>`;
+            console.log('Nenhum empregado encontrado');
             return;
         }
 
-        data.forEach(emp => {
-            const valorCheckbox = `${emp.codigo_empresa}|${emp.codigo_empregado}`;
-            container.innerHTML += `
-                <div class="checkbox-item">
-                    <input type="checkbox" id="empr_${emp.codigo_empregado}_${emp.codigo_empresa}" value="${valorCheckbox}" checked>
-                    <label for="empr_${emp.codigo_empregado}_${emp.codigo_empresa}">
-                        <span style="color: #8B3A3A; font-weight: bold; margin-right: 5px;">[Emp: ${emp.codigo_empresa}]</span> 
-                        ${emp.codigo_empregado} - ${emp.nome_empregado}
+        console.log('Empregados encontrados:', data.length);
+
+        let htmlContent = '';
+
+        data.forEach((emp, index) => {
+            const codEmpresa = emp.codigo_empresa;
+            const codEmpregado = emp.codigo_empregado;
+            const nomeEmpregado = emp.nome_empregado;
+
+            console.log(`Empregado ${index + 1}:`, { codEmpresa, codEmpregado, nomeEmpregado });
+
+            if (!codEmpresa || !codEmpregado || !nomeEmpregado) {
+                console.warn('Campos incompletos no registro:', emp);
+                return;
+            }
+
+            const valorCheckbox = `${codEmpresa}|${codEmpregado}`;
+            const idCheckbox = `empr_${codEmpregado}_${codEmpresa}`;
+
+            htmlContent += `
+                <div class="checkbox-item" style="display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee;">
+                    <input type="checkbox" id="${idCheckbox}" value="${valorCheckbox}" checked style="margin-right: 10px;">
+                    <label for="${idCheckbox}" style="cursor: pointer; flex: 1; margin: 0;">
+                        <span style="color: #8B3A3A; font-weight: bold; margin-right: 5px;">[Emp: ${codEmpresa}]</span> 
+                        ${codEmpregado} - ${nomeEmpregado}
                     </label>
                 </div>
             `;
         });
 
+        // ✅ CORRIGIDO: Limpar e atribuir conteúdo
+        container.innerHTML = '';
+        container.innerHTML = htmlContent;
+
+        // ✅ CORRIGIDO: Garantir que o container está visível
+        container.style.display = 'block';
+        container.style.visibility = 'visible';
+        container.style.opacity = '1';
+
+        // ✅ NOVO: Ativar step2 APÓS carregar os empregados com sucesso
+        ativarStep('step2');
+
+        console.log('HTML renderizado com sucesso. Total de itens:', data.length);
+
     } catch (erro) {
         console.error('Erro ao buscar empregados:', erro);
-        mostrarMensagem('Erro', 'Falha ao buscar a lista de empregados.');
+        container.innerHTML = `<div style="padding: 10px; text-align: center; color: #d32f2f;">
+            <strong>Erro ao buscar empregados:</strong><br>
+            ${erro.message}
+        </div>`;
+        mostrarMensagem('Erro', `Falha ao buscar empregados: ${erro.message}`);
     }
 }
 
 function avancarParaParametros() {
     const checkboxesEmpregados = document.querySelectorAll('#listaEmpregados input[type="checkbox"]:checked');
+
     if (checkboxesEmpregados.length === 0) {
         mostrarMensagem('Atenção', 'Selecione pelo menos um empregado para continuar.');
         return;
     }
+
+    // ✅ CORRIGIDO: Usar ativarStep em vez de apenas adicionar classe
     ativarStep('step3');
 }
 
@@ -168,9 +245,20 @@ function gerarPrevia() {
     const rubrica = document.getElementById('lanRubrica').value.trim();
     const valor = document.getElementById('lanValor').value.trim();
 
-    if (!tipoProcesso) { mostrarMensagem('Atenção', 'Selecione o Tipo do Processo.'); return; }
-    if (!rubrica || !/^\d+$/.test(rubrica)) { mostrarMensagem('Atenção', 'Informe um Código de Rubrica válido (apenas números).'); return; }
-    if (!valor || !/^\d+$/.test(valor)) { mostrarMensagem('Atenção', 'Informe um Valor válido (apenas números inteiros).'); return; }
+    if (!tipoProcesso) {
+        mostrarMensagem('Atenção', 'Selecione o Tipo do Processo.');
+        return;
+    }
+
+    if (!rubrica || !/^\d+$/.test(rubrica)) {
+        mostrarMensagem('Atenção', 'Informe um Código de Rubrica válido (apenas números).');
+        return;
+    }
+
+    if (!valor || !/^\d+$/.test(valor)) {
+        mostrarMensagem('Atenção', 'Informe um Valor válido (apenas números inteiros).');
+        return;
+    }
 
     const checkboxesEmpregados = document.querySelectorAll('#listaEmpregados input[type="checkbox"]:checked');
     const empregadosSelecionados = Array.from(checkboxesEmpregados).map(cb => cb.value);
@@ -191,7 +279,7 @@ function gerarPrevia() {
 
     empregadosSelecionados.forEach(empData => {
         const [codEmpresa, codEmpregado] = empData.split('|');
-        
+
         const codEmpregadoFormatado = String(codEmpregado).padStart(10, '0');
         const codEmpresaFormatada = String(codEmpresa).padStart(10, '0');
 
@@ -199,6 +287,8 @@ function gerarPrevia() {
     });
 
     document.getElementById('previaTxt').textContent = conteudoTXTGerado;
+
+    // ✅ CORRIGIDO: Usar ativarStep em vez de apenas adicionar classe
     ativarStep('step4');
 }
 
@@ -214,7 +304,7 @@ function baixarTXT() {
 
     const comp = document.getElementById('lanCompetencia').value.replace('/', '-');
     const rubrica = document.getElementById('lanRubrica').value.trim();
-    
+
     const blob = new Blob([conteudoTXTGerado], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -224,6 +314,6 @@ function baixarTXT() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     mostrarMensagem('Sucesso', 'Arquivo TXT baixado com sucesso!');
 }

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lançamentos - SCONT</title>
-    <link rel="stylesheet" href="styles_lancamento.css">
+    <link rel="stylesheet" href="styles.css">
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -77,7 +77,7 @@
         </div>
 
         <!-- PASSO 2: EMPREGADOS (Oculto inicialmente) -->
-        <div class="step-card" id="step2">
+        <div class="step-card" id="step2" style="display: none; opacity: 0.5; pointer-events: none;">
             <div class="step-title"><div class="step-number">2</div> Seleção de Empregados</div>
             
             <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 5px;">Selecione os Empregados *</label>
