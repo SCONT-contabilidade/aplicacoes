@@ -806,10 +806,10 @@
     <nav class="nav">
       <button class="active" onclick="showSection('dashboard')">Dashboard <span>Visão geral</span></button>
       <button onclick="showSection('documentos')">Documentos <span>Licenças e Alvarás</span></button>
-      <button onclick="showSection('processos')">Processos</button>
+      <button onclick="showSection('processos')">Processos <span>Andamento de renovações</span></button>
       <button onclick="showSection('clientes')">Clientes <span>Estabelecimentos</span></button>
       <button onclick="showSection('relatorios')">Relatórios Gerenciais <span>KPIs e análises</span></button>
-      <button onclick="showSection('config')">Configurações</button>
+      <button onclick="showSection('config')">Configurações <span>Alertas de vencimento</span></button>
     </nav>
     <div class="sidebar-card">
       <h3>Integração com Supabase</h3>
@@ -978,7 +978,7 @@
             <thead>
               <tr>
                 <th>Número Processo</th>
-                <th>Documento</th>
+                <th>Estabelecimento</th>
                 <th>Tipo</th>
                 <th>Status</th>
                 <th>Data Abertura</th>
@@ -1157,6 +1157,7 @@
                   <th>Vencidas</th>
                 </tr>
               </thead>
+
               <tbody id="tableTipo">
                 <tr><td colspan="4" style="text-align:center;color:var(--muted);">Carregando...</td></tr>
               </tbody>
@@ -1241,18 +1242,13 @@
         </div>
         <div class="table-wrap">
           <table>
-           <thead>
-  <tr>
-    <th>Número Processo</th>
-    <th>Estabelecimento</th>
-    <th>Tipo</th>
-    <th>Status</th>
-    <th>Data Abertura</th>
-    <th>Previsão Conclusão</th>
-    <th>Responsável</th>
-    <th>Ações</th>
-  </tr>
-</thead>
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Quantidade</th>
+                <th>Percentual</th>
+              </tr>
+            </thead>
             <tbody id="tableProcessos">
               <tr><td colspan="3" style="text-align:center;color:var(--muted);">Carregando...</td></tr>
             </tbody>
@@ -1324,10 +1320,7 @@
 </div>
 
 <script>
-
-// 
 // CONFIGURAÇÃO SUPABASE
-// 
 const SUPABASE_URL = 'https://graxaoomeffhsazuzkvg.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyYXhhb29tZWZmaHNhenV6a3ZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MTUxMDUsImV4cCI6MjA5MDI5MTEwNX0.ZpbVoNVS4momTyf7NME4mcYuI4oCQUvNFSDbORCHktI';
 
@@ -1367,8 +1360,6 @@ async function initSupabase() {
     }
     
     console.log('✓ Supabase conectado com sucesso');
-    console.log('✓ URL:', SUPABASE_URL);
-    console.log('✓ Chave configurada:', SUPABASE_KEY.substring(0, 10) + '...');
     
     // Carregar dados iniciais
     await loadDashboard();
@@ -1382,21 +1373,17 @@ async function initSupabase() {
     
   } catch (error) {
     console.error('❌ Erro ao conectar Supabase:', error.message);
-    console.error('Detalhes:', error);
     showAlert(`❌ Erro ao conectar: ${error.message}`, 'error');
   }
 }
 
-// 
 // REALTIME - SINCRONIZAÇÃO AUTOMÁTICA
-// 
 function setupRealtimeListeners() {
-  // Listener para Licenças
   const licencasChannel = supabaseClient
     .channel('public:licencas')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'licencas' }, payload => {
       console.log('📡 Licenças atualizadas:', payload);
-      if (document.getElementById('documentosTable').closest('.section-view').classList.contains('active')) {
+      if (!document.getElementById('documentosTable').closest('.section-view').classList.contains('hidden')) {
         fetchDocumentos();
       }
       loadDashboard();
@@ -1405,12 +1392,11 @@ function setupRealtimeListeners() {
   
   realtimeSubscriptions.push(licencasChannel);
   
-  // Listener para Alvarás
   const alvarasChannel = supabaseClient
     .channel('public:alvaras')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'alvaras' }, payload => {
       console.log('📡 Alvarás atualizados:', payload);
-      if (document.getElementById('documentosTable').closest('.section-view').classList.contains('active')) {
+      if (!document.getElementById('documentosTable').closest('.section-view').classList.contains('hidden')) {
         fetchDocumentos();
       }
       loadDashboard();
@@ -1419,12 +1405,11 @@ function setupRealtimeListeners() {
   
   realtimeSubscriptions.push(alvarasChannel);
   
-  // Listener para Clientes
   const clientesChannel = supabaseClient
     .channel('public:clientes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, payload => {
       console.log('📡 Clientes atualizados:', payload);
-      if (document.getElementById('clientesTable').closest('.section-view').classList.contains('active')) {
+      if (!document.getElementById('clientesTable').closest('.section-view').classList.contains('hidden')) {
         fetchClientes();
       }
       loadDashboard();
@@ -1433,12 +1418,11 @@ function setupRealtimeListeners() {
   
   realtimeSubscriptions.push(clientesChannel);
 
-  // Listener para Processos
   const processosChannel = supabaseClient
     .channel('public:processos')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'processos' }, payload => {
       console.log('📡 Processos atualizados:', payload);
-      if (document.getElementById('processosTable').closest('.section-view').classList.contains('active')) {
+      if (!document.getElementById('processosTable').closest('.section-view').classList.contains('hidden')) {
         fetchProcessos();
       }
     })
@@ -1447,72 +1431,54 @@ function setupRealtimeListeners() {
   realtimeSubscriptions.push(processosChannel);
 }
 
-// 
 // FUNÇÕES DE NAVEGAÇÃO
-// 
 function showSection(sectionId) {
   console.log('🔄 Navegando para:', sectionId);
   
-  // Ocultar TODAS as seções
   const allSections = document.querySelectorAll('.section-view');
   allSections.forEach(section => {
-    section.classList.remove('active');
     section.classList.add('hidden');
   });
   
-  // Remover active de TODOS os botões
   const allButtons = document.querySelectorAll('.nav button');
   allButtons.forEach(btn => {
     btn.classList.remove('active');
   });
   
-  // Mostrar seção selecionada
   const targetSection = document.getElementById(sectionId);
   if (targetSection) {
     targetSection.classList.remove('hidden');
-    targetSection.classList.add('active');
     console.log('✓ Seção exibida:', sectionId);
   } else {
     console.error('✗ Seção não encontrada:', sectionId);
     return;
   }
   
-  // Marcar botão como ativo
   allButtons.forEach(btn => {
     const onclick = btn.getAttribute('onclick');
     if (onclick && onclick.includes(`'${sectionId}'`)) {
       btn.classList.add('active');
-      console.log('✓ Botão marcado como ativo');
     }
   });
   
-  // Carregar dados específicos da seção
   setTimeout(() => {
     if (sectionId === 'dashboard') {
-      console.log('📊 Carregando Dashboard...');
       loadDashboard();
     } else if (sectionId === 'documentos') {
-      console.log('📄 Carregando Documentos...');
       fetchDocumentos();
     } else if (sectionId === 'processos') {
-      console.log('📋 Carregando Processos...');
       fetchProcessos();
     } else if (sectionId === 'clientes') {
-      console.log('👥 Carregando Clientes...');
       fetchClientes();
     } else if (sectionId === 'relatorios') {
-      console.log('📈 Carregando Relatórios...');
       loadReports();
     } else if (sectionId === 'config') {
-      console.log('⚙️ Carregando Configurações...');
       loadConfig();
     }
   }, 100);
 }
 
-// 
 // DASHBOARD
-// 
 async function loadDashboard() {
   try {
     const { data: licencas } = await supabaseClient.from('licencas').select('*');
@@ -1603,7 +1569,6 @@ async function loadAlerts() {
   try {
     console.log('🔔 Carregando alertas visuais...');
     
-    // Obter configuração de dias
     const diasAlertas = window.appConfig?.alertDays || 30;
     console.log(`📅 Usando ${diasAlertas} dias como limite de alerta`);
     
@@ -1614,7 +1579,6 @@ async function loadAlerts() {
     const today = new Date();
     const dataLimiteAlerta = new Date(today.getTime() + diasAlertas * 24 * 60 * 60 * 1000);
     
-    // Filtrar documentos vencidos OU próximos do vencimento (até X dias)
     const alerts = allDocs
       .filter(d => {
         const vencimento = new Date(d.data_validade);
@@ -1698,21 +1662,7 @@ async function loadAlerts() {
   }
 }
 
-function filterDashboard(filter) {
-  document.querySelectorAll('.filters .chip').forEach(chip => {
-    chip.classList.remove('active');
-  });
-  if (event && event.target) {
-    event.target.classList.add('active');
-  }
-  currentFilter.type = filter;
-  loadDashboardTable();
-}
-
-// 
 // DOCUMENTOS (LICENÇAS + ALVARÁS UNIFICADOS)
-// 
-
 async function fetchDocumentos() {
   try {
     const { data: licencas } = await supabaseClient.from('licencas').select('*').order('data_validade', { ascending: true });
@@ -1799,105 +1749,63 @@ function filterDocumentosPorTipo(tipo) {
   });
 }
 
-async function openNewDocumento() {
+function openNewDocumento() {
   const modal = document.getElementById('recordModal');
   const modalTitle = document.getElementById('modalTitle');
   const modalBody = document.getElementById('modalBody');
   
   modalTitle.textContent = 'Novo Documento';
   
-  // Mostrar loading enquanto busca clientes
   modalBody.innerHTML = `
-    <div style="text-align: center; padding: 20px;">
-      <div class="spinner" style="width: 40px; height: 40px; border: 3px solid var(--line); border-top-color: var(--brand); border-radius: 50%; animation: spin .6s linear infinite; margin: 0 auto 12px;"></div>
-      <p>Carregando estabelecimentos...</p>
-    </div>
+    <form onsubmit="saveDocumento(event)">
+      <div class="form-grid">
+        <div class="field">
+          <label>Tipo de Documento</label>
+          <select id="tipoDoc" required>
+            <option value="licenca">Licença</option>
+            <option value="alvara">Alvará</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>Estabelecimento</label>
+          <input type="text" id="estabelecimento" required>
+        </div>
+        <div class="field">
+          <label>Tipo específico</label>
+          <input type="text" id="tipo" placeholder="Ex: Licença Sanitária" required>
+        </div>
+        <div class="field">
+          <label>Número</label>
+          <input type="text" id="numero" required>
+        </div>
+        <div class="field">
+          <label>Data de emissão</label>
+          <input type="date" id="dataEmissao" required>
+        </div>
+        <div class="field">
+          <label>Data de validade</label>
+          <input type="date" id="dataValidade" required>
+        </div>
+        <div class="field">
+          <label>Órgão emissor</label>
+          <input type="text" id="orgaoEmissor" required>
+        </div>
+        <div class="field">
+          <label>Responsável</label>
+          <input type="text" id="responsavel" required>
+        </div>
+        <div class="field full">
+          <label>Observações</label>
+          <textarea id="observacoes"></textarea>
+        </div>
+        <div class="field full">
+          <button type="submit" class="btn btn-primary">Salvar documento</button>
+        </div>
+      </div>
+    </form>
   `;
   
-  try {
-    // Buscar clientes para dropdown de estabelecimentos
-    const { data: clientes, error: erroClientes } = await supabaseClient
-      .from('clientes')
-      .select('nome')
-      .order('nome', { ascending: true });
-    
-    if (erroClientes) throw erroClientes;
-    
-    const optionsEstabHtml = (clientes || []).map(cliente => 
-      `<option value="${cliente.nome}">${cliente.nome}</option>`
-    ).join('');
-    
-    // Renderizar formulário
-    modalBody.innerHTML = `
-      <form onsubmit="saveDocumento(event)">
-        <div class="form-grid">
-          <div class="field">
-            <label>Tipo de Documento</label>
-            <select id="tipoDoc" required>
-              <option value="licenca">Licença</option>
-              <option value="alvara">Alvará</option>
-            </select>
-          </div>
-          
-          <div class="field full">
-            <label>🏢 Estabelecimento *</label>
-            <select id="estabelecimento" required style="border: 2px solid var(--brand);">
-              <option value="">-- Selecione um estabelecimento --</option>
-              ${optionsEstabHtml}
-            </select>
-            <small style="color: var(--muted); margin-top: 4px; display: block;">
-              Total de ${clientes?.length || 0} estabelecimento(s) cadastrado(s)
-            </small>
-          </div>
-          
-          <div class="field">
-            <label>Tipo específico</label>
-            <input type="text" id="tipo" placeholder="Ex: Licença Sanitária" required>
-          </div>
-          <div class="field">
-            <label>Número</label>
-            <input type="text" id="numero" required>
-          </div>
-          <div class="field">
-            <label>Data de emissão</label>
-            <input type="date" id="dataEmissao" required>
-          </div>
-          <div class="field">
-            <label>Data de validade</label>
-            <input type="date" id="dataValidade" required>
-          </div>
-          <div class="field">
-            <label>Órgão emissor</label>
-            <input type="text" id="orgaoEmissor" required>
-          </div>
-          <div class="field">
-            <label>Responsável</label>
-            <input type="text" id="responsavel" required>
-          </div>
-          <div class="field full">
-            <label>Observações</label>
-            <textarea id="observacoes"></textarea>
-          </div>
-          <div class="field full">
-            <button type="submit" class="btn btn-primary">Salvar documento</button>
-          </div>
-        </div>
-      </form>
-    `;
-    
-    modal.classList.add('active');
-    console.log('✓ Formulário de novo documento carregado com sucesso');
-    
-  } catch (error) {
-    console.error('❌ Erro ao carregar estabelecimentos:', error);
-    modalBody.innerHTML = `
-      <div style="text-align: center; padding: 20px; color: var(--danger);">
-        <p>❌ Erro ao carregar estabelecimentos</p>
-        <p style="font-size: .9rem;">${error.message}</p>
-      </div>
-    `;
-    modal.classList.add('active');
-  }
+  modal.classList.add('active');
 }
 
 async function saveDocumento(event) {
@@ -1932,10 +1840,8 @@ async function saveDocumento(event) {
   }
 }
 
-// 
-// PROCESSOS
-// 
 
+// PROCESSOS
 async function fetchProcessos() {
   try {
     const { data, error } = await supabaseClient
@@ -1949,7 +1855,7 @@ async function fetchProcessos() {
     tbody.innerHTML = '';
     
     if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);">Nenhum processo cadastrado</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);">Nenhum processo cadastrado</td></tr>';
       return;
     }
     
@@ -2005,62 +1911,6 @@ async function fetchProcessos() {
     console.error('Erro ao carregar processos:', error);
     showAlert('Erro ao carregar processos', 'error');
   }
-// Adicionar listener para carregar andamento ao clicar em "Ver"
-setTimeout(() => {
-  document.querySelectorAll('[data-action="view-processo"]').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const processoId = btn.getAttribute('data-id');
-      await loadAndamentoForProcesso(processoId);
-    });
-  });
-}, 100);
-}
-
-// Função para carregar andamento de um processo específico
-async function loadAndamentoForProcesso(processoId) {
-  try {
-    console.log('📋 Carregando andamento para processo:', processoId);
-    
-    // Buscar andamento do processo
-    const { data: andamentos, error } = await supabaseClient
-      .from('andamento_processos')
-      .select('*')
-      .eq('processo_id', processoId)
-      .order('data_mudanca', { ascending: false });
-    
-    if (error) throw error;
-    
-    const tbody = document.getElementById('andamentoTable');
-    tbody.innerHTML = '';
-    
-    if (!andamentos || andamentos.length === 0) {
-      console.log('ℹ️ Nenhum andamento encontrado');
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">Nenhum andamento registrado para este processo</td></tr>';
-      return;
-    }
-    
-    console.log(`📊 ${andamentos.length} andamento(s) encontrado(s)`);
-    
-    andamentos.forEach(and => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${formatDate(and.data_mudanca)}</td>
-        <td>${and.status_anterior || 'Início'}</td>
-        <td><strong>${and.status_novo}</strong></td>
-        <td>${and.responsavel || '-'}</td>
-        <td>${and.observacao || '-'}</td>
-      `;
-      tbody.appendChild(row);
-    });
-    
-    console.log('✓ Andamento carregado com sucesso');
-    
-  } catch (error) {
-    console.error('❌ Erro ao carregar andamento:', error);
-    const tbody = document.getElementById('andamentoTable');
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--danger);">Erro ao carregar andamento</td></tr>';
-  }
 }
 
 function filterProcessosPorStatus(status) {
@@ -2086,7 +1936,6 @@ async function openNewProcesso() {
   `;
   
   try {
-    // Buscar documentos
     const { data: licencas } = await supabaseClient
       .from('licencas')
       .select('id, numero, tipo, estabelecimento')
@@ -2097,7 +1946,6 @@ async function openNewProcesso() {
       .select('id, numero, tipo, estabelecimento')
       .order('estabelecimento', { ascending: true });
     
-    // Buscar clientes para dropdown de estabelecimentos
     const { data: clientes } = await supabaseClient
       .from('clientes')
       .select('nome')
@@ -2131,19 +1979,16 @@ async function openNewProcesso() {
       return;
     }
     
-    // Gerar options do select de documentos
     const optionsDocHtml = allDocs.map(doc => 
       `<option value="${doc.id}|${doc.tipo_tabela}|${doc.tipo}|${doc.estabelecimento}">
         ${doc.estabelecimento} - ${doc.tipo} (${doc.numero})
       </option>`
     ).join('');
     
-    // Gerar options do select de estabelecimentos
     const optionsEstabHtml = (clientes || []).map(cliente => 
       `<option value="${cliente.nome}">${cliente.nome}</option>`
     ).join('');
     
-    // Renderizar formulário
     modalBody.innerHTML = `
       <form onsubmit="saveProcesso(event)">
         <div class="form-grid">
@@ -2158,7 +2003,16 @@ async function openNewProcesso() {
             </small>
           </div>
           
-      
+          <div class="field full">
+            <label>🏢 Estabelecimento *</label>
+            <select id="estabelecimentoProcesso" required style="border: 2px solid var(--brand);">
+              <option value="">-- Selecione um estabelecimento --</option>
+              ${optionsEstabHtml}
+            </select>
+            <small style="color: var(--muted); margin-top: 4px; display: block;">
+              Total de ${clientes?.length || 0} estabelecimento(s) cadastrado(s)
+            </small>
+          </div>
           
           <div class="field full">
             <label>Número do Processo *</label>
@@ -2228,7 +2082,6 @@ async function openNewProcesso() {
   }
 }
 
-// Função para atualizar tipo de documento automaticamente
 function atualizarTipoDocumento() {
   const documentoVinculado = document.getElementById('documentoVinculado').value;
   const tipoDocumentoInput = document.getElementById('tipoDocumento');
@@ -2236,7 +2089,7 @@ function atualizarTipoDocumento() {
   
   if (!documentoVinculado) {
     tipoDocumentoInput.value = '';
-   
+    estabelecimentoInput.value = '';
     return;
   }
   
@@ -2247,80 +2100,55 @@ function atualizarTipoDocumento() {
   console.log('✓ Tipo de documento e estabelecimento atualizados automaticamente');
 }
 
-
 async function saveProcesso(event) {
   event.preventDefault();
   
   console.log('💾 Iniciando salvamento de processo...');
   
-  // Validação 1: Documento selecionado
   const documentoVinculado = document.getElementById('documentoVinculado').value;
   if (!documentoVinculado) {
     showAlert('❌ Selecione um documento para vincular ao processo', 'error');
-    console.warn('Validação falhou: documento não selecionado');
     return;
   }
   
-  // Extrair documento_id e tipo_tabela
-  const [documentoId, tipoTabela] = documentoVinculado.split('|');
-  console.log('📋 Documento selecionado:', { documentoId, tipoTabela });
+  const [documentoId, tipoTabela, tipoDocumento] = documentoVinculado.split('|');
   
-  // Validação 2: Campos obrigatórios
   const numeroProcesso = document.getElementById('numeroProcesso').value.trim();
   const dataAbertura = document.getElementById('dataAbertura').value;
   const responsavel = document.getElementById('responsavelProcesso').value.trim();
+  const estabelecimento = document.getElementById('estabelecimentoProcesso').value.trim();
   
-  if (!numeroProcesso) {
-    showAlert('❌ Preencha o número do processo', 'error');
+  if (!numeroProcesso || !dataAbertura || !responsavel || !estabelecimento) {
+    showAlert('❌ Preencha todos os campos obrigatórios', 'error');
     return;
   }
   
-  if (!dataAbertura) {
-    showAlert('❌ Preencha a data de abertura', 'error');
-    return;
-  }
-  
-  if (!responsavel) {
-    showAlert('❌ Preencha o responsável', 'error');
-    return;
-  }
-  
-  // Validação 3: Número único
-  console.log('🔍 Verificando se número do processo já existe...');
-  const { data: existente, error: erroVerif } = await supabaseClient
+  const { data: existente } = await supabaseClient
     .from('processos')
     .select('id')
     .eq('numero_processo', numeroProcesso);
   
-  if (erroVerif) {
-    console.error('Erro ao verificar número único:', erroVerif);
-    showAlert('❌ Erro ao validar número do processo', 'error');
-    return;
-  }
-  
   if (existente && existente.length > 0) {
-    showAlert(`❌ Já existe um processo com o número "${numeroProcesso}"`, 'error');
-    console.warn('Validação falhou: número duplicado');
+    showAlert(`❌ Já existe um processo com este número`, 'error');
     return;
   }
   
-  // Preparar dados
   const data = {
     documento_id: documentoId,
-    tipo_documento: document.getElementById('tipoDocumento').value,
+    tipo_documento: tipoDocumento,
     numero_processo: numeroProcesso,
     status: document.getElementById('statusProcesso').value,
     data_abertura: dataAbertura,
     data_prevista_conclusao: document.getElementById('dataPrevista').value || null,
     responsavel: responsavel,
+    estabelecimento: estabelecimento,
     descricao: document.getElementById('descricaoProcesso').value.trim() || null,
     observacoes: document.getElementById('observacoesProcesso').value.trim() || null
   };
   
-  console.log('📊 Dados a salvar:', data);
-  
   try {
-    // Salvar processo
+    console.log('💾 Salvando processo:', data);
+    
     const { data: processoSalvo, error: erroSalvar } = await supabaseClient
       .from('processos')
       .insert([data])
@@ -2333,7 +2161,6 @@ async function saveProcesso(event) {
     
     console.log('✓ Processo salvo com sucesso:', processoSalvo);
     
-    // Registrar no histórico de andamento
     if (processoSalvo && processoSalvo.length > 0) {
       const processoId = processoSalvo[0].id;
       
@@ -2350,7 +2177,8 @@ async function saveProcesso(event) {
         .insert([andamento]);
       
       if (erroAndamento) {
-        console.warn('⚠️ Aviso ao registrar andamento:', erroAndamento);
+        console.error('❌ Erro ao registrar andamento:', erroAndamento);
+        showAlert('⚠️ Processo salvo, mas histórico não foi registrado', 'error');
       } else {
         console.log('✓ Andamento registrado com sucesso');
       }
@@ -2363,13 +2191,10 @@ async function saveProcesso(event) {
     
   } catch (error) {
     console.error('❌ Erro ao salvar processo:', error);
-    
-    // Mensagem de erro específica
     let mensagemErro = error.message;
     if (error.code === '23503') {
       mensagemErro = 'O documento selecionado não existe. Tente selecionar outro documento.';
     }
-    
     showAlert(`❌ Erro ao salvar processo: ${mensagemErro}`, 'error');
   }
 }
@@ -2488,7 +2313,6 @@ async function updateProcesso(event, id) {
     const { error } = await supabaseClient.from('processos').update(data).eq('id', id);
     if (error) throw error;
     
-    // Registrar mudança de status no histórico
     if (statusAnterior !== statusNovo) {
       await supabaseClient.from('andamento_processos').insert([{
         processo_id: id,
@@ -2523,10 +2347,7 @@ async function deleteProcesso(id) {
   }
 }
 
-// 
 // CLIENTES - CRUD
-// 
-
 async function fetchClientes() {
   try {
     const { data, error } = await supabaseClient.from('clientes').select('*').order('nome', { ascending: true });
@@ -2577,16 +2398,12 @@ async function fetchClientes() {
   }
 }
 
-// 
-// MODAL - NOVO/EDITAR REGISTRO
-// 
-
-function openNewRecord(type = 'licenca') {
+function openNewRecord(type = 'cliente') {
   const modal = document.getElementById('recordModal');
   const modalTitle = document.getElementById('modalTitle');
   const modalBody = document.getElementById('modalBody');
   
-  modalTitle.textContent = `Novo ${type === 'licenca' ? 'Licença' : type === 'alvara' ? 'Alvará' : 'Cliente'}`;
+  modalTitle.textContent = `Novo ${type === 'cliente' ? 'Cliente' : 'Registro'}`;
   
   if (type === 'cliente') {
     modalBody.innerHTML = `
@@ -2652,51 +2469,9 @@ async function editRecord(id, table) {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
     
-    modalTitle.textContent = `Editar ${table === 'licencas' ? 'Licença' : table === 'alvaras' ? 'Alvará' : 'Cliente'}`;
+    modalTitle.textContent = `Editar ${table === 'clientes' ? 'Cliente' : 'Registro'}`;
     
-    if (table === 'licencas' || table === 'alvaras') {
-      modalBody.innerHTML = `
-        <form onsubmit="updateRecord(event, '${id}', '${table}')">
-          <div class="form-grid">
-            <div class="field full">
-              <label>Estabelecimento</label>
-              <input type="text" id="estabelecimento" value="${data.estabelecimento}" required>
-            </div>
-            <div class="field">
-              <label>Tipo</label>
-              <input type="text" id="tipo" value="${data.tipo}" required>
-            </div>
-            <div class="field">
-              <label>Número</label>
-              <input type="text" id="numero" value="${data.numero}" required>
-            </div>
-            <div class="field">
-              <label>Data de emissão</label>
-              <input type="date" id="dataEmissao" value="${data.data_emissao}" required>
-            </div>
-            <div class="field">
-              <label>Data de validade</label>
-              <input type="date" id="dataValidade" value="${data.data_validade}" required>
-            </div>
-            <div class="field">
-              <label>Órgão emissor</label>
-              <input type="text" id="orgaoEmissor" value="${data.orgao_emissor}" required>
-            </div>
-            <div class="field">
-              <label>Responsável</label>
-              <input type="text" id="responsavel" value="${data.responsavel}" required>
-            </div>
-            <div class="field full">
-              <label>Observações</label>
-              <textarea id="observacoes">${data.observacoes || ''}</textarea>
-            </div>
-            <div class="field full">
-              <button type="submit" class="btn btn-primary">Atualizar</button>
-            </div>
-          </div>
-        </form>
-      `;
-    } else if (table === 'clientes') {
+    if (table === 'clientes') {
       modalBody.innerHTML = `
         <form onsubmit="updateRecord(event, '${id}', '${table}')">
           <div class="form-grid">
@@ -2736,18 +2511,7 @@ async function updateRecord(event, id, table) {
   
   let data = {};
   
-  if (table === 'licencas' || table === 'alvaras') {
-    data = {
-      estabelecimento: document.getElementById('estabelecimento').value,
-      tipo: document.getElementById('tipo').value,
-      numero: document.getElementById('numero').value,
-      data_emissao: document.getElementById('dataEmissao').value,
-      data_validade: document.getElementById('dataValidade').value,
-      orgao_emissor: document.getElementById('orgaoEmissor').value,
-      responsavel: document.getElementById('responsavel').value,
-      observacoes: document.getElementById('observacoes').value
-    };
-  } else if (table === 'clientes') {
+  if (table === 'clientes') {
     data = {
       nome: document.getElementById('nome').value,
       contato: document.getElementById('contato').value,
@@ -2763,7 +2527,6 @@ async function updateRecord(event, id, table) {
     showAlert('Registro atualizado com sucesso!', 'success');
     closeModal();
     
-    if (table === 'licencas' || table === 'alvaras') fetchDocumentos();
     if (table === 'clientes') fetchClientes();
     loadDashboard();
   } catch (error) {
@@ -2781,22 +2544,11 @@ async function viewRecord(id, table) {
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
     
-    modalTitle.textContent = `Visualizar ${table === 'licencas' ? 'Licença' : table === 'alvaras' ? 'Alvará' : 'Cliente'}`;
+    modalTitle.textContent = `Visualizar ${table === 'clientes' ? 'Cliente' : 'Registro'}`;
     
     let html = '<div style="padding:10px;">';
     
-    if (table === 'licencas' || table === 'alvaras') {
-      html += `
-        <p><strong>Estabelecimento:</strong> ${data.estabelecimento}</p>
-        <p><strong>Tipo:</strong> ${data.tipo}</p>
-        <p><strong>Número:</strong> ${data.numero}</p>
-        <p><strong>Data de emissão:</strong> ${formatDate(data.data_emissao)}</p>
-        <p><strong>Data de validade:</strong> ${formatDate(data.data_validade)}</p>
-        <p><strong>Órgão emissor:</strong> ${data.orgao_emissor}</p>
-        <p><strong>Responsável:</strong> ${data.responsavel}</p>
-        <p><strong>Observações:</strong> ${data.observacoes || '-'}</p>
-      `;
-    } else if (table === 'clientes') {
+    if (table === 'clientes') {
       html += `
         <p><strong>Nome:</strong> ${data.nome}</p>
         <p><strong>Contato:</strong> ${data.contato || '-'}</p>
@@ -2823,7 +2575,6 @@ async function deleteRecord(id, table) {
     
     showAlert('Registro excluído com sucesso!', 'success');
     
-    if (table === 'licencas' || table === 'alvaras') fetchDocumentos();
     if (table === 'clientes') fetchClientes();
     loadDashboard();
   } catch (error) {
@@ -2832,10 +2583,7 @@ async function deleteRecord(id, table) {
   }
 }
 
-// 
 // EVENT DELEGATION - AÇÕES DOS BOTÕES
-// 
-
 function attachActionListeners() {
   document.querySelectorAll('[data-action]').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -2861,10 +2609,7 @@ function attachActionListeners() {
   });
 }
 
-// 
 // FUNÇÕES AUXILIARES
-// 
-
 function closeModal() {
   const modal = document.getElementById('recordModal');
   modal.classList.remove('active');
@@ -2936,10 +2681,7 @@ async function syncFromSupabase() {
   }
 }
 
-// 
 // RELATÓRIOS GERENCIAIS
-// 
-
 async function loadReports() {
   try {
     await Promise.all([
@@ -3188,7 +2930,7 @@ async function loadReportClientesVencidos() {
         <td>${cliente}</td>
         <td>${docs.length} documento(s)</td>
         <td><span class="badge danger">${prioridade}</span></td>
-        <td><button class="btn btn-soft" onclick="alert('Abrir detalhes de ${cliente}')">Detalhes</button></td>
+        <td><button class="btn btn-soft" onclick="alert('Detalhes de ${cliente}')">Detalhes</button></td>
       `;
       tbody.appendChild(row);
     });
@@ -3300,19 +3042,19 @@ async function loadReportConformidade() {
 
 async function loadReportVencimentosConfiguravel() {
   try {
-    const diasConfiguravelRelatorio = parseInt(document.getElementById('diasVencimento').value) || 30;
+    const diasConfiguravel = parseInt(document.getElementById('diasVencimento').value) || 30;
     
     const { data: licencas } = await supabaseClient.from('licencas').select('*');
     const { data: alvaras } = await supabaseClient.from('alvaras').select('*');
     
     const allDocs = [...(licencas || []), ...(alvaras || [])];
     const today = new Date();
-    const dataLimiteRelatorio = new Date(today.getTime() + diasConfiguravelRelatorio * 24 * 60 * 60 * 1000);
+    const dataLimite = new Date(today.getTime() + diasConfiguravel * 24 * 60 * 60 * 1000);
     
     const vencimentos = allDocs
       .filter(d => {
         const vencimento = new Date(d.data_validade);
-        return vencimento > today && vencimento <= dataLimiteRelatorio;
+        return vencimento > today && vencimento <= dataLimite;
       })
       .sort((a, b) => new Date(a.data_validade) - new Date(b.data_validade));
     
@@ -3320,7 +3062,7 @@ async function loadReportVencimentosConfiguravel() {
     tbody.innerHTML = '';
     
     if (vencimentos.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px;">Nenhum documento vence nos próximos ${diasConfiguravelRelatorio} dias</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px;">Nenhum documento vence nos próximos ${diasConfiguravel} dias</td></tr>`;
       return;
     }
     
@@ -3365,7 +3107,7 @@ async function loadReportVencimentosConfiguravel() {
     });
     
     attachActionListeners();
-    showAlert(`${vencimentos.length} documento(s) vence(m) nos próximos ${diasConfiguravelRelatorio} dias`, 'info');
+    showAlert(`${vencimentos.length} documento(s) vence(m) nos próximos ${diasConfiguravel} dias`, 'info');
   } catch (error) {
     console.error('Erro ao carregar relatório de vencimentos:', error);
     showAlert('Erro ao carregar relatório', 'error');
@@ -3435,10 +3177,7 @@ function exportReports(format) {
   }
 }
 
-// 
 // CONFIGURAÇÕES
-// 
-
 function saveConfig() {
   const alertDays = document.getElementById('alertDays').value;
   const alertEmail = document.getElementById('alertEmail').value;
@@ -3499,103 +3238,56 @@ function loadConfig() {
   return window.appConfig;
 }
 
-// 
 // SETUP EVENT LISTENERS (SEGURO)
-// 
-
-function safeAddEventListener(selector, event, callback) {
-  const element = document.querySelector(selector);
-  if (element) {
-    element.addEventListener(event, callback);
-  } else {
-    console.warn(`⚠️ Elemento não encontrado: ${selector}`);
-  }
-}
-
-function safeGetElement(id) {
-  const element = document.getElementById(id);
-  if (!element) {
-    console.warn(`⚠️ Elemento com ID não encontrado: ${id}`);
-  }
-  return element;
-}
-
 function setupEventListeners() {
   console.log('🔧 Configurando event listeners...');
   
-  // Navegação
-  const navButtons = document.querySelectorAll('.nav button');
-  if (navButtons.length > 0) {
-    navButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const onclick = btn.getAttribute('onclick');
-        if (onclick) {
-          const match = onclick.match(/showSection\('([^']+)'\)/);
-          if (match) {
-            showSection(match[1]);
-          }
-        }
-      });
-    });
-    console.log('✓ Navegação configurada');
-  }
-  
-  // Botões de ação principais
-  const syncBtn = safeGetElement('syncBtn');
+  const syncBtn = document.getElementById('syncBtn');
   if (syncBtn) syncBtn.addEventListener('click', syncFromSupabase);
   
-  const newRecordBtn = safeGetElement('newRecordBtn');
+  const newRecordBtn = document.getElementById('newRecordBtn');
   if (newRecordBtn) newRecordBtn.addEventListener('click', () => openNewRecord('cliente'));
   
-  // Documentos
-  const refreshDocumentos = safeGetElement('refreshDocumentos');
+  const refreshDocumentos = document.getElementById('refreshDocumentos');
   if (refreshDocumentos) refreshDocumentos.addEventListener('click', fetchDocumentos);
   
-  const newDocumento = safeGetElement('newDocumento');
+  const newDocumento = document.getElementById('newDocumento');
   if (newDocumento) newDocumento.addEventListener('click', openNewDocumento);
   
-  const searchDocumentos = safeGetElement('searchDocumentos');
-  if (searchDocumentos) searchDocumentos.addEventListener('input', (e) => filterRows('documento', e.target.value));
+  const searchDocumentos = document.getElementById('searchDocumentos');
+  if (searchDocumentos) searchDocumentos.addEventListener('input', () => filterRows('documento'));
   
-  // Processos
-  const refreshProcessos = safeGetElement('refreshProcessos');
+  const refreshProcessos = document.getElementById('refreshProcessos');
   if (refreshProcessos) refreshProcessos.addEventListener('click', fetchProcessos);
   
-  const newProcesso = safeGetElement('newProcesso');
+  const newProcesso = document.getElementById('newProcesso');
   if (newProcesso) newProcesso.addEventListener('click', openNewProcesso);
   
-  const searchProcessos = safeGetElement('searchProcessos');
-  if (searchProcessos) searchProcessos.addEventListener('input', (e) => filterRows('processo', e.target.value));
+  const searchProcessos = document.getElementById('searchProcessos');
+  if (searchProcessos) searchProcessos.addEventListener('input', () => filterRows('processo'));
   
-  // Clientes
-  const refreshClientes = safeGetElement('refreshClientes');
+  const refreshClientes = document.getElementById('refreshClientes');
   if (refreshClientes) refreshClientes.addEventListener('click', fetchClientes);
   
-  const newCliente = safeGetElement('newCliente');
+  const newCliente = document.getElementById('newCliente');
   if (newCliente) newCliente.addEventListener('click', () => openNewRecord('cliente'));
   
-  const searchClientes = safeGetElement('searchClientes');
-  if (searchClientes) searchClientes.addEventListener('input', (e) => filterRows('cliente', e.target.value));
-  
-  // Relatórios
-  const refreshReports = safeGetElement('refreshReports');
+  const refreshReports = document.getElementById('refreshReports');
   if (refreshReports) refreshReports.addEventListener('click', loadReports);
   
-  const exportPdf = safeGetElement('exportPdf');
+  const exportPdf = document.getElementById('exportPdf');
   if (exportPdf) exportPdf.addEventListener('click', () => exportReports('pdf'));
   
-  const exportCsv = safeGetElement('exportCsv');
+  const exportCsv = document.getElementById('exportCsv');
   if (exportCsv) exportCsv.addEventListener('click', () => exportReports('csv'));
   
-  // Configurações
-  const saveConfigBtn = safeGetElement('saveConfigBtn');
+  const saveConfigBtn = document.getElementById('saveConfigBtn');
   if (saveConfigBtn) saveConfigBtn.addEventListener('click', saveConfig);
   
-  // Modal
-  const closeModalBtn = safeGetElement('closeModalBtn');
+  const closeModalBtn = document.getElementById('closeModalBtn');
   if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
   
-  const recordModal = safeGetElement('recordModal');
+  const recordModal = document.getElementById('recordModal');
   if (recordModal) {
     recordModal.addEventListener('click', (e) => {
       if (e.target.id === 'recordModal') closeModal();
@@ -3605,22 +3297,16 @@ function setupEventListeners() {
   console.log('✓ Event listeners configurados com sucesso');
 }
 
-// 
 // INICIALIZAÇÃO PRINCIPAL
-// 
-
 document.addEventListener('DOMContentLoaded', () => {
   console.log('📄 DOM carregado, iniciando aplicação...');
   
   try {
-    // Carregar configurações PRIMEIRO
     window.appConfig = loadConfig();
     console.log('✓ Configurações carregadas globalmente');
     
-    // Setup de listeners
     setupEventListeners();
     
-    // Inicializar Supabase
     initSupabase();
     
   } catch (error) {
@@ -3629,7 +3315,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Fallback para navegadores antigos
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     console.log('✓ Fallback DOMContentLoaded acionado');
@@ -3642,3 +3327,6 @@ console.log('🚀 Script carregado e pronto');
 </script>
 </body>
 </html>
+
+
+              
