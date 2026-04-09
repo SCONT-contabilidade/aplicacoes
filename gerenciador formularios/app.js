@@ -744,6 +744,9 @@ function createEditForm(form) {
         </div>
     `;
 
+    // ==========================================
+    // 1. EDIÇÃO: REGISTRO DE EMPRESA
+    // ==========================================
     if (tipo === 'registro') {
         camposEdicao += `
             <div class="detail-section">
@@ -765,7 +768,7 @@ function createEditForm(form) {
                     <div class="detail-field"><label class="detail-label">E-mail Comercial</label><input type="email" id="editEmailComercial" class="search-input" style="padding: var(--spacing-md);" value="${sanitizeOutput(form.email_comercial || form.emailComercial || '')}"></div>
                     <div class="detail-field"><label class="detail-label">Telefone Comercial</label><input type="tel" id="editTelefoneComercial" class="search-input" style="padding: var(--spacing-md);" value="${sanitizeOutput(form.telefone_comercial || form.telefoneComercial || '')}"></div>
                 </div>
-                                <div class="detail-row full">
+                <div class="detail-row full">
                     <div class="detail-field">
                         <label class="detail-label">
                             Atividade Principal
@@ -776,7 +779,80 @@ function createEditForm(form) {
                 </div>
             </div>
         `;
-    } else if (tipo === 'empregado') {
+    } 
+    // ==========================================
+    // 2. EDIÇÃO: ALTERAÇÃO DE EMPRESA
+    // ==========================================
+    else if (tipo === 'alteracao') {
+        camposEdicao += `
+            <div class="detail-section">
+                <div class="detail-section-title">Dados da Alteração</div>
+                <div class="detail-row full">
+                    <div class="detail-field">
+                        <label class="detail-label">Nome da Empresa Atual</label>
+                        <input type="text" id="editNomeEmpresa" class="search-input" style="padding: var(--spacing-md);" value="${sanitizeOutput(form.nome_empresa || form.nomeEmpresa || '')}">
+                    </div>
+                </div>
+                
+                ${form.alterar_nome ? `
+                <div class="detail-row full">
+                    <div class="detail-field">
+                        <label class="detail-label">Opção 1 de Novo Nome</label>
+                        <input type="text" id="editNomeOpcao1" class="search-input" style="padding: var(--spacing-md);" value="${sanitizeOutput(form.nome_opcao_1 || '')}">
+                    </div>
+                </div>` : ''}
+
+                ${form.alterar_fantasia ? `
+                <div class="detail-row full">
+                    <div class="detail-field">
+                        <label class="detail-label">Novo Nome Fantasia</label>
+                        <input type="text" id="editNovoNomeFantasia" class="search-input" style="padding: var(--spacing-md);" value="${sanitizeOutput(form.novo_nome_fantasia || '')}">
+                    </div>
+                </div>` : ''}
+
+                ${form.alterar_capital ? `
+                <div class="detail-row full">
+                    <div class="detail-field">
+                        <label class="detail-label">Novo Capital Social</label>
+                        <input type="number" id="editNovoCapital" class="search-input" style="padding: var(--spacing-md);" value="${form.novo_capital || 0}" step="0.01">
+                    </div>
+                </div>` : ''}
+
+                ${form.alterar_dados ? `
+                <div class="detail-row full">
+                    <div class="detail-field">
+                        <label class="detail-label">Novo Endereço</label>
+                        <input type="text" id="editNovoEndereco" class="search-input" style="padding: var(--spacing-md);" value="${sanitizeOutput(form.novo_endereco || '')}">
+                    </div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-field">
+                        <label class="detail-label">Novo CEP</label>
+                        <input type="text" id="editCepNovo" class="search-input" style="padding: var(--spacing-md);" value="${sanitizeOutput(form.cep_novo || '')}">
+                    </div>
+                    <div class="detail-field">
+                        <label class="detail-label">Novo IPTU</label>
+                        <input type="text" id="editIptuNovo" class="search-input" style="padding: var(--spacing-md);" value="${sanitizeOutput(form.iptu_novo || '')}">
+                    </div>
+                </div>` : ''}
+
+                ${form.alterar_atividades ? `
+                <div class="detail-row full">
+                    <div class="detail-field">
+                        <label class="detail-label">
+                            Nova Atividade Principal
+                            <span class="help-icon" onclick="openCnaeModal('editAtividadePrincipalNova')" title="Ver lista de CNAEs">❓</span>
+                        </label>
+                        <input type="text" id="editAtividadePrincipalNova" class="search-input" style="padding: var(--spacing-md);" value="${sanitizeOutput(form.atividade_principal_nova || '')}">
+                    </div>
+                </div>` : ''}
+            </div>
+        `;
+    } 
+    // ==========================================
+    // 3. EDIÇÃO: REGISTRO DE EMPREGADO
+    // ==========================================
+    else if (tipo === 'empregado') {
         camposEdicao += `
             <div class="detail-section">
                 <div class="detail-section-title">Informações Pessoais</div>
@@ -829,7 +905,8 @@ async function saveChanges() {
         localStorage.setItem('lastUser', JSON.stringify(responsavel));
 
         const form = window.currentForm;
-        const tableName = form.tipo_formulario === 'empregado' ? 'empregados' : 'formularios';
+        const tipo = form.tipo_formulario;
+        const tableName = tipo === 'empregado' ? 'empregados' : 'formularios';
 
         const updateData = {
             status: newStatus,
@@ -837,28 +914,38 @@ async function saveChanges() {
             updated_at: new Date().toISOString()
         };
 
-        if (document.getElementById('editNomeEmpresa')) {
-            updateData.nome_empresa = document.getElementById('editNomeEmpresa').value;
-            updateData.nome_fantasia = document.getElementById('editNomeFantasia').value;
-            updateData.capital_social = parseFloat(document.getElementById('editCapitalSocial').value) || 0;
-            updateData.metragem = parseFloat(document.getElementById('editMetragem').value) || 0;
-            updateData.endereco = document.getElementById('editEndereco').value;
-            updateData.cep = document.getElementById('editCep').value;
-            updateData.iptu = document.getElementById('editIptu').value;
-            updateData.email_comercial = document.getElementById('editEmailComercial').value;
-            updateData.telefone_comercial = document.getElementById('editTelefoneComercial').value;
-            updateData.atividade_principal = document.getElementById('editAtividadePrincipal').value;
-        }
-
-        if (document.getElementById('editNomeCompleto')) {
-            updateData.nome_completo = document.getElementById('editNomeCompleto').value;
-            updateData.cpf = document.getElementById('editCpf').value;
-            updateData.email = document.getElementById('editEmail').value;
-            updateData.celular = document.getElementById('editCelular').value;
-            updateData.cargo = document.getElementById('editCargo').value;
-            updateData.departamento = document.getElementById('editDepartamento').value;
-            updateData.salario_contratual = parseFloat(document.getElementById('editSalario').value) || 0;
-            updateData.horario_trabalho = document.getElementById('editHorarioTrabalho').value;
+        // Salvar campos baseados no tipo de formulário
+        if (tipo === 'registro') {
+            if (document.getElementById('editNomeEmpresa')) updateData.nome_empresa = document.getElementById('editNomeEmpresa').value;
+            if (document.getElementById('editNomeFantasia')) updateData.nome_fantasia = document.getElementById('editNomeFantasia').value;
+            if (document.getElementById('editCapitalSocial')) updateData.capital_social = parseFloat(document.getElementById('editCapitalSocial').value) || 0;
+            if (document.getElementById('editMetragem')) updateData.metragem = parseFloat(document.getElementById('editMetragem').value) || 0;
+            if (document.getElementById('editEndereco')) updateData.endereco = document.getElementById('editEndereco').value;
+            if (document.getElementById('editCep')) updateData.cep = document.getElementById('editCep').value;
+            if (document.getElementById('editIptu')) updateData.iptu = document.getElementById('editIptu').value;
+            if (document.getElementById('editEmailComercial')) updateData.email_comercial = document.getElementById('editEmailComercial').value;
+            if (document.getElementById('editTelefoneComercial')) updateData.telefone_comercial = document.getElementById('editTelefoneComercial').value;
+            if (document.getElementById('editAtividadePrincipal')) updateData.atividade_principal = document.getElementById('editAtividadePrincipal').value;
+        } 
+        else if (tipo === 'alteracao') {
+            if (document.getElementById('editNomeEmpresa')) updateData.nome_empresa = document.getElementById('editNomeEmpresa').value;
+            if (document.getElementById('editNomeOpcao1')) updateData.nome_opcao_1 = document.getElementById('editNomeOpcao1').value;
+            if (document.getElementById('editNovoNomeFantasia')) updateData.novo_nome_fantasia = document.getElementById('editNovoNomeFantasia').value;
+            if (document.getElementById('editNovoCapital')) updateData.novo_capital = parseFloat(document.getElementById('editNovoCapital').value) || 0;
+            if (document.getElementById('editNovoEndereco')) updateData.novo_endereco = document.getElementById('editNovoEndereco').value;
+            if (document.getElementById('editCepNovo')) updateData.cep_novo = document.getElementById('editCepNovo').value;
+            if (document.getElementById('editIptuNovo')) updateData.iptu_novo = document.getElementById('editIptuNovo').value;
+            if (document.getElementById('editAtividadePrincipalNova')) updateData.atividade_principal_nova = document.getElementById('editAtividadePrincipalNova').value;
+        } 
+        else if (tipo === 'empregado') {
+            if (document.getElementById('editNomeCompleto')) updateData.nome_completo = document.getElementById('editNomeCompleto').value;
+            if (document.getElementById('editCpf')) updateData.cpf = document.getElementById('editCpf').value;
+            if (document.getElementById('editEmail')) updateData.email = document.getElementById('editEmail').value;
+            if (document.getElementById('editCelular')) updateData.celular = document.getElementById('editCelular').value;
+            if (document.getElementById('editCargo')) updateData.cargo = document.getElementById('editCargo').value;
+            if (document.getElementById('editDepartamento')) updateData.departamento = document.getElementById('editDepartamento').value;
+            if (document.getElementById('editSalario')) updateData.salario_contratual = parseFloat(document.getElementById('editSalario').value) || 0;
+            if (document.getElementById('editHorarioTrabalho')) updateData.horario_trabalho = document.getElementById('editHorarioTrabalho').value;
         }
 
         const { error: updateError } = await supabaseClient.from(tableName).update(updateData).eq('id', formId);
