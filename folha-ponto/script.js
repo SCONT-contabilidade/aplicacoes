@@ -14,7 +14,7 @@ const state = {
     empregadosDisponiveis: [],
     empresaSelecionada: null,
     competencia: '',
-    folhas: [],
+    folhas: [], // Array de objetos: { empregadoId, nome, dados: [], dsrDias: [], flagsFolga: {} }
     abaAtivaIndex: 0,
     feriados: [],
     jornada: '08:00',
@@ -114,11 +114,13 @@ async function verificarPreenchimentosAnteriores(codigoEmpresa, competencia) {
     try {
         const { data, error } = await supabaseClient
             .from('saves')
-            .select('usuario_id, responsavel_alteracao, data_criacao, nome_trabalhador')
+            .select('id, responsavel_alteracao, data_criacao, nome_trabalhador')
             .eq('empresa_codigo', codigoEmpresa)
             .eq('competencia', competencia)
             .order('data_criacao', { ascending: false });
+        
         if (error) throw error;
+        
         if (data && data.length > 0) {
             const agrupados = agruparSaves(data);
             mostrarModalRetomada(agrupados, codigoEmpresa, competencia);
@@ -128,6 +130,152 @@ async function verificarPreenchimentosAnteriores(codigoEmpresa, competencia) {
     } catch (erro) {
         console.error('Erro ao buscar saves:', erro);
         iniciarNovaFolhaEmBranco();
+    }
+}
+
+function agruparSaves(registros) {
+    const grupos = {};
+    registros.forEach(reg => {
+        const dataCurta = new Date(reg.data_criacao).toLocaleDateString('pt-BR');
+        const responsavel = reg.responsavel_alteracao || 'Usuário Desconhecido';
+        const chave = `${dataCurta}_${responsavel}`;
+        
+        if (!grupos[chave]) {
+            grupos[chave] = {
+                data: dataCurta,
+                responsavel: responsavel,
+                timestamp: reg.data_criacao,
+                empregados: new Set()
+            };
+        }
+        grupos[chave].empregados.add(reg.nome_trabalhador);
+    });
+    return Object.values(grupos);
+}
+
+function mostrarModalRetomada(agrupados, codigoEmpresa, competencia) {
+    const container = document.getElementById('listaPreenchimentos');
+    container.innerHTML = '';
+    
+    agrupados.forEach(grupo => {
+        const dataHora = new Date(grupo.timestamp).toLocaleString('pt-BR');
+        const div = document.createElement('div');
+        div.style.cssText = 'padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;';
+        div.innerHTML = `
+            <div>
+                <div style="font-weight: bold; color: var(--primary-color);">👤 ${grupo.responsavel}</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">Salvo em: ${dataHora}</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${grupo.empregados.size} empregado(s) preenchido(s)</div>
+            </div>
+            <button class="btn btn-secondary btn-small" onclick="carregarSaveEspecifico('${codigoEmpresa}', '${competencia}', '${grupo.timestamp}')">Retomar</button>
+        `;
+        container.appendChild(div);
+    });
+    
+    document.getElementById('btnNovoPreenchimento').onclick = () => {
+        fecharModalPreenchimentos();
+        iniciarNovaFolhaEmBranco();
+    };
+    
+    document.getElementById('preenchimentosModal').classList.add('active');
+}
+
+function fecharModalPreenchimentos() {
+    document.getElementById('preenchimentosModal').classList.remove('active');
+}
+
+async function carregarSaveEspecifico(codigoEmpresa, competencia, timestamp) {
+    fecharModalPreenchimentos();
+    mostrarMensagem('Carregando', 'Recuperando dados salvos...');
+    
+    try {
+        const { data, error } = await supabaseClient
+            .from('saves')
+            .select('*')
+            .eq('empresa_codigo', codigoEmpresa)
+            .eq('competencia', competencia)
+            .lte('data_criacao', timestamp)
+            .order('data_criacao', { ascending: false });
+        
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+            throw new Error("Nenhum dado encontrado para esta empresa e competência.");
+        }
+        
+        const ultimasVersoes = {};
+        data.forEach(reg => {
+            if (!ultimasVersoes[reg.nome_trabalhador]) {
+                ultimasVersoes[reg.nome_trabalhador] = reg;
+            }
+        });
+        
+        const registrosParaCarregar = Object.values(ultimasVersoes);
+        
+        if (registrosParaCarregar.length > 0) {
+            state.jornada = registrosParaCarregar[0].jornada || '08:00';
+            state.ruleExtra100Optional = registrosParaCarregar[0].rule_extra_100_opcional || false;
+            
+            if (registrosParaCarregar[0].feriados_json) {
+                try {
+                    state.feriados = JSON.parse(registrosParaCarregar[0].feriados_json);
+                } catch (e) {
+                    console.warn('Erro ao fazer parse de feriados_json:', e);
+                    state.feriados = [];
+                }
+                renderizarTabelaFeriados();
+            }
+            
+            document.getElementById('jornada').value = state.jornada;
+            document.getElementById('ruleExtra100Optional').checked = state.ruleExtra100Optional;
+            
+            // ✅ Função auxiliar para parse seguro
+            const parseJSONSeguro = (jsonString, defaultValue = null) => {
+                if (!jsonString) return defaultValue;
+                if (typeof jsonString !== 'string') return defaultValue;
+                
+                const trimmed = jsonString.trim();
+                if (!trimmed || trimmed === '' || trimmed === 'null' || trimmed === 'undefined') {
+                    return defaultValue;
+                }
+                
+                try {
+                    return JSON.parse(trimmed);
+                } catch (e) {
+                    console.warn('Erro ao fazer parse de JSON:', jsonString, e);
+                    return defaultValue;
+                }
+            };
+            
+            state.folhas = registrosParaCarregar.map(reg => {
+                let dsrDias = parseJSONSeguro(reg.dsr_dias, []);
+                let flagsFolga = parseJSONSeguro(reg.flags_folga, {});
+                let dadosJson = parseJSONSeguro(reg.dados_json, []);
+                
+                if (!Array.isArray(dsrDias)) dsrDias = [];
+                if (typeof flagsFolga !== 'object' || flagsFolga === null) flagsFolga = {};
+                if (!Array.isArray(dadosJson)) dadosJson = [];
+                
+                return {
+                    empregadoId: state.empregadosDisponiveis.find(e => e.nome_empregado === reg.nome_trabalhador)?.codigo_empregado || '',
+                    nome: reg.nome_trabalhador,
+                    dados: dadosJson,
+                    dsrDias: dsrDias,
+                    flagsFolga: flagsFolga
+                };
+            });
+            
+            state.abaAtivaIndex = 0;
+            mostrarTela('mainScreen');
+            renderizarAbas();
+            fecharModalMensagem();
+        } else {
+            throw new Error("Nenhum dado válido encontrado no save.");
+        }
+    } catch (erro) {
+        console.error('Erro ao carregar save:', erro);
+        mostrarMensagem('Erro', 'Falha ao carregar os dados salvos. Iniciando folha em branco.');
+        setTimeout(iniciarNovaFolhaEmBranco, 2000);
     }
 }
 
@@ -181,6 +329,7 @@ function fecharModalPreenchimentos() {
 async function carregarSaveEspecifico(codigoEmpresa, competencia, timestamp) {
     fecharModalPreenchimentos();
     mostrarMensagem('Carregando', 'Recuperando dados salvos...');
+    
     try {
         const { data, error } = await supabaseClient
             .from('saves')
@@ -189,28 +338,95 @@ async function carregarSaveEspecifico(codigoEmpresa, competencia, timestamp) {
             .eq('competencia', competencia)
             .lte('data_criacao', timestamp)
             .order('data_criacao', { ascending: false });
+        
         if (error) throw error;
+        
+        if (!data || data.length === 0) {
+            throw new Error("Nenhum dado encontrado para esta empresa e competência.");
+        }
+        
         const ultimasVersoes = {};
         data.forEach(reg => {
             if (!ultimasVersoes[reg.nome_trabalhador]) {
                 ultimasVersoes[reg.nome_trabalhador] = reg;
             }
         });
+        
         const registrosParaCarregar = Object.values(ultimasVersoes);
+        
         if (registrosParaCarregar.length > 0) {
             state.jornada = registrosParaCarregar[0].jornada || '08:00';
             state.ruleExtra100Optional = registrosParaCarregar[0].rule_extra_100_opcional || false;
+            
             if (registrosParaCarregar[0].feriados_json) {
-                state.feriados = JSON.parse(registrosParaCarregar[0].feriados_json);
+                try {
+                    state.feriados = JSON.parse(registrosParaCarregar[0].feriados_json);
+                } catch (e) {
+                    console.warn('Erro ao fazer parse de feriados_json:', e);
+                    state.feriados = [];
+                }
                 renderizarTabelaFeriados();
             }
+            
             document.getElementById('jornada').value = state.jornada;
             document.getElementById('ruleExtra100Optional').checked = state.ruleExtra100Optional;
-            state.folhas = registrosParaCarregar.map(reg => ({
-                empregadoId: state.empregadosDisponiveis.find(e => e.nome_empregado === reg.nome_trabalhador)?.codigo_empregado || '',
-                nome: reg.nome_trabalhador,
-                dados: JSON.parse(reg.dados_json)
-            }));
+            
+            const parseJSONSeguro = (jsonString, defaultValue = null) => {
+                if (!jsonString) return defaultValue;
+                if (typeof jsonString !== 'string') return defaultValue;
+                
+                const trimmed = jsonString.trim();
+                if (!trimmed || trimmed === '' || trimmed === 'null' || trimmed === 'undefined') {
+                    return defaultValue;
+                }
+                
+                try {
+                    return JSON.parse(trimmed);
+                } catch (e) {
+                    console.warn('Erro ao fazer parse de JSON:', jsonString, e);
+                    return defaultValue;
+                }
+            };
+            
+            // ✅ CORRIGIDO: Validação rigorosa de tipos
+            state.folhas = registrosParaCarregar.map(reg => {
+                let dsrDias = parseJSONSeguro(reg.dsr_dias, []);
+                let flagsFolga = parseJSONSeguro(reg.flags_folga, {});
+                let dadosJson = parseJSONSeguro(reg.dados_json, []);
+                
+                // ✅ Garantir tipos corretos
+                if (!Array.isArray(dsrDias)) {
+                    console.warn('dsrDias não é array, convertendo:', dsrDias);
+                    dsrDias = [];
+                }
+                
+                if (typeof flagsFolga !== 'object' || flagsFolga === null || Array.isArray(flagsFolga)) {
+                    console.warn('flagsFolga não é objeto válido, convertendo:', flagsFolga);
+                    flagsFolga = {};
+                }
+                
+                if (!Array.isArray(dadosJson)) {
+                    console.warn('dadosJson não é array, convertendo:', dadosJson);
+                    dadosJson = [];
+                }
+                
+                console.log('Carregado com sucesso:', {
+                    nome: reg.nome_trabalhador,
+                    dsrDias: dsrDias,
+                    dsrDiasType: Array.isArray(dsrDias) ? 'array' : typeof dsrDias,
+                    flagsFolga: flagsFolga,
+                    flagsFolgaType: typeof flagsFolga
+                });
+                
+                return {
+                    empregadoId: state.empregadosDisponiveis.find(e => e.nome_empregado === reg.nome_trabalhador)?.codigo_empregado || '',
+                    nome: reg.nome_trabalhador,
+                    dados: dadosJson,
+                    dsrDias: dsrDias,
+                    flagsFolga: flagsFolga
+                };
+            });
+            
             state.abaAtivaIndex = 0;
             mostrarTela('mainScreen');
             renderizarAbas();
@@ -237,13 +453,14 @@ function adicionarNovaFolha() {
     const novaFolha = {
         empregadoId: '',
         nome: 'Novo Empregado',
-        dados: gerarDiasDoMes(state.competencia)
+        dados: gerarDiasDoMes(state.competencia),
+        dsrDias: [], // ✅ CORRIGIDO: Inicializar como ARRAY vazio
+        flagsFolga: {} // ✅ CORRIGIDO: Inicializar como OBJETO vazio
     };
     state.folhas.push(novaFolha);
     state.abaAtivaIndex = state.folhas.length - 1;
     renderizarAbas();
 }
-
 function removerFolha(index) {
     if (state.folhas.length <= 1) {
         mostrarMensagem('Aviso', 'Você precisa ter pelo menos uma folha.');
@@ -263,17 +480,70 @@ function renderizarAbas() {
         const btn = document.createElement('button');
         btn.className = `tab-btn ${index === state.abaAtivaIndex ? 'active' : ''}`;
         
-        // ✅ REMOVIDA A LIMITAÇÃO DE 15 CARACTERES
-        let nomeExibicao = folha.nome; 
+        // ✅ CORRIGIDO: Nova fonte, tamanho e tipografia para as abas
+        btn.style.cssText = `
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-weight: 600;
+            font-size: 12px;
+            letter-spacing: 0.4px;
+            padding: 12px 18px;
+            border-radius: 6px 6px 0 0;
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            border-bottom: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-right: 5px;
+        `;
+        
+        // Estilo quando ativa
+        if (index === state.abaAtivaIndex) {
+            btn.style.cssText += `
+                background: white;
+                color: #800000;
+                border-color: #800000;
+                border-bottom: 3px solid #800000;
+                font-weight: 700;
+            `;
+        }
+        
+        let nomeExibicao = folha.nome;
         
         btn.innerHTML = `
             ${nomeExibicao}
-            <span class="tab-close" onclick="event.stopPropagation(); removerFolha(${index})">×</span>
+            <span class="tab-close" onclick="event.stopPropagation(); removerFolha(${index})" style="
+                font-size: 18px;
+                line-height: 1;
+                cursor: pointer;
+                opacity: 0.6;
+                transition: opacity 0.2s;
+            " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">×</span>
         `;
+        
         btn.onclick = () => {
             state.abaAtivaIndex = index;
             renderizarAbas();
         };
+        
+        // Hover effect
+        btn.onmouseover = () => {
+            if (index !== state.abaAtivaIndex) {
+                btn.style.background = '#e5e7eb';
+                btn.style.color = '#1f2937';
+            }
+        };
+        
+        btn.onmouseout = () => {
+            if (index !== state.abaAtivaIndex) {
+                btn.style.background = '#f3f4f6';
+                btn.style.color = '#374151';
+            }
+        };
+        
         nav.appendChild(btn);
     });
     renderizarConteudoAba();
@@ -290,20 +560,50 @@ function renderizarConteudoAba() {
         optionsEmpregados += `<option value="${emp.codigo_empregado}|${emp.nome_empregado}" ${selected}>${emp.codigo_empregado} - ${emp.nome_empregado}</option>`;
     });
     
-    let html = `
-        <div style="margin-bottom: 25px; background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #800000; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <div style="background: #800000; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                    👤
-                </div>
+  let html = `
+    <div style="margin-bottom: 25px; background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #800000; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="
+    background-color: #ffffff; 
+    color: #800000; 
+    width: 45px; 
+    height: 45px; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 22px; 
+    border: 2px solid #800000; 
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+"> 
+    👨‍💼 
+</div>
                 <div style="flex: 1;">
-                    <label for="selectEmpregado" style="display: block; font-size: 12px; color: #6c757d; text-transform: uppercase; font-weight: bold; margin-bottom: 5px;">Empregado Selecionado *</label>
-                    <select id="selectEmpregado" onchange="atualizarNomeEmpregado(this.value, ${state.abaAtivaIndex})" style="width: 100%; max-width: 500px; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 15px; font-weight: 500; color: #495057; background-color: white;">
-                        ${optionsEmpregados}
+                        <label for="selectEmpregado" style="display: block; font-size: 12px; color: #6c757d; text-transform: uppercase; font-weight: bold; margin-bottom: 5px;">Empregado Selecionado *</label>
+                <!-- ✅ CORRIGIDO: Dropdown com nova fonte e tamanho -->
+                <select id="selectEmpregado" onchange="atualizarNomeEmpregado(this.value, ${state.abaAtivaIndex})" style="
+
+-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                    width: 100%; 
+                    max-width: 500px; 
+                    padding: 12px 15px; 
+                    border: 2px solid #ced4da; 
+                    border-radius: 6px; 
+                    font-size: 12px; 
+                    font-weight: 500; 
+                    color: #495057; 
+                    background-color: white;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                    letter-spacing: 0.3px;
+                    transition: border-color 0.2s;
+                ">
+                    ${optionsEmpregados}
+
                     </select>
                 </div>
             </div>
         </div>
+
         <div class="table-container">
             <table class="data-table">
                 <thead>
@@ -314,6 +614,8 @@ function renderizarConteudoAba() {
                         <th>Saída 1</th>
                         <th>Entrada 2</th>
                         <th>Saída 2</th>
+                        <th>DSR</th>
+                        <th>Folga/Falta</th>
                         <th>Ação</th>
                     </tr>
                 </thead>
@@ -321,27 +623,54 @@ function renderizarConteudoAba() {
     `;
     
     folha.dados.forEach((dia, diaIndex) => {
+        const isFeriado = state.feriados.some(f => f.data === dia.data);
+        const isDSR = folha.dsrDias.includes(dia.data);
+        const rowClass = (isFeriado || isDSR) ? 'holiday-row' : '';
+        const infoExtra = isFeriado ? `<span style="color: var(--danger-color); font-size: 11px; display: block;">Feriado</span>` : '';
+        
+        const temEntrada = dia.entrada1 || dia.entrada2;
+        const flagFolga = folha.flagsFolga[dia.data] || '';
+        
         html += `
-            <tr>
-                <td>${dia.data}</td>
-                <td>${dia.diaSemana}</td>
+            <tr class="${rowClass}">
+                <td>
+                    <strong>${dia.data}</strong><br>
+                    <span style="font-size: 12px; color: var(--text-secondary);">${dia.diaSemana}</span>
+                    ${infoExtra}
+                </td>
+                <td style="text-align: center; font-size: 12px; color: #6c757d;">
+                    ${isDSR ? '<span style="background: #4f46e5; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold;">DSR</span>' : ''}
+                </td>
                 <td><input type="text" class="time-input" value="${dia.entrada1}" onchange="atualizarDado(${state.abaAtivaIndex}, ${diaIndex}, 'entrada1', this.value)" placeholder="00:00" maxlength="5"></td>
                 <td><input type="text" class="time-input" value="${dia.saida1}" onchange="atualizarDado(${state.abaAtivaIndex}, ${diaIndex}, 'saida1', this.value)" placeholder="00:00" maxlength="5"></td>
                 <td><input type="text" class="time-input" value="${dia.entrada2}" onchange="atualizarDado(${state.abaAtivaIndex}, ${diaIndex}, 'entrada2', this.value)" placeholder="00:00" maxlength="5"></td>
                 <td><input type="text" class="time-input" value="${dia.saida2}" onchange="atualizarDado(${state.abaAtivaIndex}, ${diaIndex}, 'saida2', this.value)" placeholder="00:00" maxlength="5"></td>
+                <td style="text-align: center;">
+                    <input type="checkbox" ${isDSR ? 'checked' : ''} onchange="atualizarDSRDia(${state.abaAtivaIndex}, '${dia.data}', this.checked)" style="cursor: pointer; width: 18px; height: 18px;">
+                </td>
+                <td style="text-align: center;">
+                    ${!temEntrada ? `
+                        <select onchange="atualizarFlagFolga(${state.abaAtivaIndex}, '${dia.data}', this.value)" style="padding: 4px; border-radius: 4px; border: 1px solid #ced4da; font-size: 12px;">
+                            <option value="">-</option>
+                            <option value="folga" ${flagFolga === 'folga' ? 'selected' : ''}>Folga</option>
+                            <option value="falta" ${flagFolga === 'falta' ? 'selected' : ''}>Falta</option>
+                        </select>
+                    ` : '-'}
+                </td>
                 <td><button type="button" class="btn-icon" onclick="limparLinha(${state.abaAtivaIndex}, ${diaIndex})" title="Limpar linha">🗑️</button></td>
             </tr>
         `;
     });
+    
     html += `</tbody></table></div>`;
     content.innerHTML = html;
+    
     document.querySelectorAll('.time-input').forEach(input => {
         input.addEventListener('input', (e) => {
             e.target.value = formatarHora(e.target.value);
         });
     });
 }
-
 window.atualizarNomeEmpregado = function(valorSelect, folhaIndex) {
     if (!valorSelect) {
         state.folhas[folhaIndex].nome = 'Novo Empregado';
@@ -366,6 +695,46 @@ window.atualizarNomeEmpregado = function(valorSelect, folhaIndex) {
     }
     renderizarAbas();
 };
+
+// ✅ Atualizar DSR (Dias de Descanso Semanal Remunerado)
+// ✅ Atualizar DSR por data específica (não por dia da semana)
+window.atualizarDSRDia = function(folhaIndex, data, isChecked) {
+    const folha = state.folhas[folhaIndex];
+    
+    if (isChecked) {
+        if (!folha.dsrDias.includes(data)) {
+            folha.dsrDias.push(data);
+        }
+    } else {
+        folha.dsrDias = folha.dsrDias.filter(d => d !== data);
+    }
+    
+    renderizarConteudoAba();
+};
+
+// ✅ Atualizar Flag de Folga/Falta para dias não preenchidos
+window.atualizarFlagFolga = function(folhaIndex, data, valor) {
+    const folha = state.folhas[folhaIndex];
+    
+    if (valor) {
+        folha.flagsFolga[data] = valor;
+    } else {
+        delete folha.flagsFolga[data];
+    }
+};
+
+
+// ✅ Atualizar Flag de Folga/Falta para dias não preenchidos
+window.atualizarFlagFolga = function(folhaIndex, data, valor) {
+    const folha = state.folhas[folhaIndex];
+    
+    if (valor) {
+        folha.flagsFolga[data] = valor;
+    } else {
+        delete folha.flagsFolga[data];
+    }
+};
+
 
 window.atualizarDado = function(folhaIndex, diaIndex, campo, valor) {
     if (valor && !validarHora(valor)) {
@@ -495,27 +864,66 @@ async function processarFolhaComSalvamento(nomeResponsavel) {
     try {
         state.resultados = state.folhas.map(folha => calcularFolha(folha));
         
-        // ✅ Usar UUID padrão (já existe na tabela usuarios)
         const usuarioUUID = '00000000-0000-0000-0000-000000000000';
         
-        const dadosParaSalvar = state.folhas.map(folha => ({
-            usuario_id: usuarioUUID,
-            empresa_codigo: state.empresaSelecionada.codigo_empresa,
-            nome_trabalhador: folha.nome,
-            competencia: state.competencia,
-            jornada: state.jornada,
-            rule_extra_100_opcional: state.ruleExtra100Optional,
-            dados_json: JSON.stringify(folha.dados),
-            feriados_json: JSON.stringify(state.feriados),
-            responsavel_alteracao: nomeResponsavel,
-            status: 'processado',
-            criado_por: nomeResponsavel,
-            atualizado_por: nomeResponsavel,
-            nome_usuario: nomeResponsavel
-        }));
+        // ✅ CORRIGIDO: Garantir que dsr_dias e flags_folga sejam salvos corretamente
+        const dadosParaSalvar = state.folhas.map(folha => {
+            // ✅ Garantir que dsrDias é um ARRAY
+            let dsrDiasArray = [];
+            if (Array.isArray(folha.dsrDias)) {
+                dsrDiasArray = folha.dsrDias;
+            } else if (typeof folha.dsrDias === 'string') {
+                try {
+                    dsrDiasArray = JSON.parse(folha.dsrDias);
+                    if (!Array.isArray(dsrDiasArray)) dsrDiasArray = [];
+                } catch (e) {
+                    dsrDiasArray = [];
+                }
+            }
+            
+            // ✅ Garantir que flagsFolga é um OBJETO
+            let flagsFolgaObj = {};
+            if (typeof folha.flagsFolga === 'object' && folha.flagsFolga !== null && !Array.isArray(folha.flagsFolga)) {
+                flagsFolgaObj = folha.flagsFolga;
+            } else if (typeof folha.flagsFolga === 'string') {
+                try {
+                    flagsFolgaObj = JSON.parse(folha.flagsFolga);
+                    if (typeof flagsFolgaObj !== 'object' || flagsFolgaObj === null || Array.isArray(flagsFolgaObj)) {
+                        flagsFolgaObj = {};
+                    }
+                } catch (e) {
+                    flagsFolgaObj = {};
+                }
+            }
+            
+            console.log('Salvando folha:', {
+                nome: folha.nome,
+                dsrDias: dsrDiasArray,
+                dsrDiasType: typeof dsrDiasArray,
+                flagsFolga: flagsFolgaObj,
+                flagsFolgaType: typeof flagsFolgaObj
+            });
+            
+            return {
+                usuario_id: usuarioUUID,
+                empresa_codigo: state.empresaSelecionada.codigo_empresa,
+                nome_trabalhador: folha.nome,
+                competencia: state.competencia,
+                jornada: state.jornada,
+                rule_extra_100_opcional: state.ruleExtra100Optional,
+                dados_json: JSON.stringify(folha.dados),
+                feriados_json: JSON.stringify(state.feriados),
+                dsr_dias: JSON.stringify(dsrDiasArray), // ✅ Sempre um ARRAY
+                flags_folga: JSON.stringify(flagsFolgaObj), // ✅ Sempre um OBJETO
+                responsavel_alteracao: nomeResponsavel,
+                status: 'processado',
+                criado_por: nomeResponsavel,
+                atualizado_por: nomeResponsavel,
+                nome_usuario: nomeResponsavel
+            };
+        });
         
-        console.log('Salvando com UUID:', usuarioUUID);
-        console.log('Dados a enviar:', dadosParaSalvar[0]);
+        console.log('Primeiro registro a salvar:', dadosParaSalvar[0]);
         
         const { error } = await supabaseClient.from('saves').insert(dadosParaSalvar);
         if (error) throw error;
@@ -623,40 +1031,83 @@ function simpleHash(str) {
 // --- MOTOR DE CÁLCULO ---
 function calcularFolha(folha) {
     const jornadaMinutos = converterHoraParaMinutos(state.jornada);
-    let totalTrabalhado = 0, totalExtra50 = 0, totalExtra100 = 0, totalNoturno = 0, totalNoturnoConvertido = 0, totalDevido = 0;
+    let totalTrabalhado = 0, totalExtra50 = 0, totalExtra100 = 0, totalNoturno = 0, totalNoturnoConvertido = 0, totalFaltante = 0;
+    
     const diasCalculados = folha.dados.map(dia => {
         const isFeriado = state.feriados.some(f => f.data === dia.data);
-        const isDomingo = dia.diaSemana === 'Dom';
-        const isDiaDescanso = isFeriado || isDomingo;
+        const isDSRCustomizado = folha.dsrDias.includes(dia.data);
+        const isDiaDescanso = isFeriado || isDSRCustomizado;
+        
         const minTrabalhados = calcularHorasTrabalhadas(dia.entrada1, dia.saida1) + calcularHorasTrabalhadas(dia.entrada2, dia.saida2);
         const minNoturnos = calcularHorasNoturnas(dia.entrada1, dia.saida1, dia.entrada2, dia.saida2);
         const minNoturnosConvertidos = Math.round(minNoturnos / 0.875);
-        let extra50 = 0, extra100 = 0, devido = 0;
+        
+        let extra50 = 0, extra100 = 0, faltante = 0;
+        let flagDSR = isDSRCustomizado;
+        let flagFolga = false, flagFalta = false;
+        
         if (minTrabalhados > 0) {
             if (isDiaDescanso) {
-                extra100 = minTrabalhados;
+                // ✅ DSR/Feriado: 100% sobre HORAS NOTURNAS CONVERTIDAS se houver noturno, senão sobre horas trabalhadas
+                if (minNoturnos > 0) {
+                    extra100 = minNoturnosConvertidos;
+                } else {
+                    extra100 = minTrabalhados;
+                }
+                flagDSR = true;
             } else {
-                if (minTrabalhados > jornadaMinutos) {
-                    const minutosExtras = minTrabalhados - jornadaMinutos;
+                // ✅ CORRIGIDO: Usar HORAS NOTURNAS CONVERTIDAS para todos os cálculos se houver noturno
+                const horasReferencia = (minNoturnos > 0) ? minNoturnosConvertidos : minTrabalhados;
+                
+                if (horasReferencia > jornadaMinutos) {
+                    let minutosExtras = horasReferencia - jornadaMinutos;
+                    
                     if (state.ruleExtra100Optional) {
-                        if (minutosExtras <= 120) extra50 = minutosExtras;
-                        else { extra50 = 120; extra100 = minutosExtras - 120; }
+                        // ✅ CORRIGIDO: 100% a partir da 3ª hora de 50%
+                        // Primeiras 2h (120 min) = 50%, A partir da 3ª = 100%
+                        if (minutosExtras <= 120) {
+                            extra50 = minutosExtras;
+                            extra100 = 0;
+                        } else {
+                            extra50 = 120;
+                            extra100 = minutosExtras - 120;
+                        }
                     } else {
+                        // Sem flag: tudo é 50%
                         extra50 = minutosExtras;
+                        extra100 = 0;
                     }
-                } else if (minTrabalhados < jornadaMinutos) {
-                    devido = jornadaMinutos - minTrabalhados;
+                } else if (horasReferencia < jornadaMinutos) {
+                    // ✅ Faltante: Jornada - Horas de Referência
+                    faltante = jornadaMinutos - horasReferencia;
+                    if (faltante < 0) faltante = 0;
                 }
             }
         } else if (!isDiaDescanso) {
-            devido = jornadaMinutos;
+            const flagFolgaData = folha.flagsFolga[dia.data];
+            if (flagFolgaData === 'folga') {
+                flagFolga = true;
+            } else if (flagFolgaData === 'falta') {
+                faltante = jornadaMinutos;
+                flagFalta = true;
+            } else {
+                faltante = jornadaMinutos;
+                flagFalta = true;
+            }
         }
+        
+        // ✅ Garantir que extras nunca sejam menores que 0
+        extra50 = Math.max(0, extra50);
+        extra100 = Math.max(0, extra100);
+        faltante = Math.max(0, faltante);
+        
         totalTrabalhado += minTrabalhados;
         totalExtra50 += extra50;
         totalExtra100 += extra100;
         totalNoturno += minNoturnos;
         totalNoturnoConvertido += minNoturnosConvertidos;
-        totalDevido += devido;
+        totalFaltante += faltante;
+        
         return {
             data: dia.data,
             diaSemana: dia.diaSemana,
@@ -669,20 +1120,60 @@ function calcularFolha(folha) {
             extra100: converterMinutosParaHora(extra100),
             noturno: converterMinutosParaHora(minNoturnos),
             noturnoConvertido: converterMinutosParaHora(minNoturnosConvertidos),
-            devido: converterMinutosParaHora(devido)
+            faltante: converterMinutosParaHora(faltante),
+            isDiaDescanso: isDiaDescanso,
+            flagDSR: flagDSR,
+            flagFolga: flagFolga,
+            flagFalta: flagFalta
         };
     });
+    
+    // ✅ Manter totais ORIGINAIS para exibição
+    const totalExtra50Original = totalExtra50;
+    const totalExtra100Original = totalExtra100;
+    
+    // Cálculo de Horas Devidas
+    let horasFaltantesMinutos = totalFaltante;
+    let extra50Minutos = totalExtra50;
+    let extra100Minutos = totalExtra100;
+    let horasDevidasMinutos = 0;
+    
+    if (horasFaltantesMinutos > 0) {
+        // Subtrair de Extra 50% primeiro
+        if (extra50Minutos >= horasFaltantesMinutos) {
+            extra50Minutos -= horasFaltantesMinutos;
+            horasFaltantesMinutos = 0;
+        } else {
+            horasFaltantesMinutos -= extra50Minutos;
+            extra50Minutos = 0;
+            
+            // Se ainda houver faltante, subtrair de Extra 100%
+            if (horasFaltantesMinutos > 0 && extra100Minutos > 0) {
+                if (extra100Minutos >= horasFaltantesMinutos) {
+                    extra100Minutos -= horasFaltantesMinutos;
+                    horasFaltantesMinutos = 0;
+                } else {
+                    horasFaltantesMinutos -= extra100Minutos;
+                    extra100Minutos = 0;
+                }
+            }
+        }
+        
+        horasDevidasMinutos = Math.max(0, horasFaltantesMinutos);
+    }
+    
     return {
         nome: folha.nome,
         empregadoId: folha.empregadoId,
         dias: diasCalculados,
         totais: {
             trabalhado: converterMinutosParaHora(totalTrabalhado),
-            extra50: converterMinutosParaHora(totalExtra50),
-            extra100: converterMinutosParaHora(totalExtra100),
+            extra50: converterMinutosParaHora(totalExtra50Original),
+            extra100: converterMinutosParaHora(totalExtra100Original),
             noturno: converterMinutosParaHora(totalNoturno),
             noturnoConvertido: converterMinutosParaHora(totalNoturnoConvertido),
-            devido: converterMinutosParaHora(totalDevido)
+            faltante: converterMinutosParaHora(totalFaltante),
+            devidas: converterMinutosParaHora(horasDevidasMinutos)
         }
     };
 }
@@ -727,31 +1218,46 @@ function renderizarConsolidado() {
             <div class="card" style="margin-bottom: 25px; padding: 0; overflow: hidden; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
                 <div style="background: linear-gradient(to right, #800000, #a52a2a); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 20px;">👤</span>
-                        <span style="font-weight: 600; font-size: 16px; letter-spacing: 0.5px;">${res.nome}</span>
+                        <span style="font-size: 24px; background: rgba(255,255,255,0.2); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">👨‍💼</span>
+                        <div>
+                            <span style="font-weight: 600; font-size: 14px; letter-spacing: 0.5px; display: block;">${res.nome}</span>
+                            <span style="font-size: 12px; opacity: 0.9;">Matrícula: ${res.empregadoId}</span>
+                        </div>
                     </div>
-                    <span style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;">Matrícula: ${res.empregadoId}</span>
                 </div>
+                
+                <!-- ✅ NOVO: Seção de Totais de Extras ANTES de Horas Devidas -->
+                <div style="background: #f9fafb; padding: 15px 20px; border-bottom: 1px solid #e5e7eb;">
+                    <div style="font-size: 12px; color: #6b7280; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 10px;">📊 Totais de Horas Extras</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
+                        <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb; text-align: center;">
+                            <div style="font-size: 11px; color: #6b7280; font-weight: 600;">Extras 50%</div>
+                            <div style="font-size: 24px; font-weight: 800; color: #1f2937; margin-top: 5px;">${res.totais.extra50}</div>
+                        </div>
+                        <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb; text-align: center;">
+                            <div style="font-size: 11px; color: #6b7280; font-weight: 600;">Extras 100%</div>
+                            <div style="font-size: 24px; font-weight: 800; color: #1f2937; margin-top: 5px;">${res.totais.extra100}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Resumo Geral -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1px; background: #e5e7eb;">
-                    <div style="background: white; padding: 20px 15px; text-align: center; transition: all 0.2s ease;">
+                    <div style="background: white; padding: 20px 15px; text-align: center;">
                         <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Trabalhado</div>
                         <div style="font-size: 24px; font-weight: 800; color: #1f2937; margin-top: 8px;">${res.totais.trabalhado}</div>
-                    </div>
-                    <div style="background: white; padding: 20px 15px; text-align: center;">
-                        <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Extras 50%</div>
-                        <div style="font-size: 24px; font-weight: 800; color: #1f2937; margin-top: 8px;">${res.totais.extra50}</div>
-                    </div>
-                    <div style="background: white; padding: 20px 15px; text-align: center;">
-                        <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Extras 100%</div>
-                        <div style="font-size: 24px; font-weight: 800; color: #1f2937; margin-top: 8px;">${res.totais.extra100}</div>
                     </div>
                     <div style="background: white; padding: 20px 15px; text-align: center;">
                         <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Adic. Noturno</div>
                         <div style="font-size: 24px; font-weight: 800; color: #1f2937; margin-top: 8px;">${res.totais.noturnoConvertido}</div>
                     </div>
                     <div style="background: #fff5f5; padding: 20px 15px; text-align: center;">
-                        <div style="font-size: 11px; color: #991b1b; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Falta/Atraso</div>
-                        <div style="font-size: 24px; font-weight: 800; color: #991b1b; margin-top: 8px;">${res.totais.devido}</div>
+                        <div style="font-size: 11px; color: #991b1b; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Horas Faltantes</div>
+                        <div style="font-size: 24px; font-weight: 800; color: #991b1b; margin-top: 8px;">${res.totais.faltante}</div>
+                    </div>
+                    <div style="background: #fef3c7; padding: 20px 15px; text-align: center;">
+                        <div style="font-size: 11px; color: #92400e; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Horas Devidas</div>
+                        <div style="font-size: 24px; font-weight: 800; color: #92400e; margin-top: 8px;">${res.totais.devidas}</div>
                     </div>
                 </div>
             </div>
@@ -780,7 +1286,8 @@ function renderizarTabelasDiarias() {
                                 <th style="padding: 12px 15px; text-align: center; border-bottom: 2px solid #e5e7eb;">Extra 50%</th>
                                 <th style="padding: 12px 15px; text-align: center; border-bottom: 2px solid #e5e7eb;">Extra 100%</th>
                                 <th style="padding: 12px 15px; text-align: center; border-bottom: 2px solid #e5e7eb;">Noturno</th>
-                                <th style="padding: 12px 15px; text-align: center; border-bottom: 2px solid #e5e7eb;">Falta/Atraso</th>
+                                <th style="padding: 12px 15px; text-align: center; border-bottom: 2px solid #e5e7eb;">Faltante</th>
+                                <th style="padding: 12px 15px; text-align: center; border-bottom: 2px solid #e5e7eb;">Flags</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -788,27 +1295,40 @@ function renderizarTabelasDiarias() {
         
         res.dias.forEach((dia, index) => {
             const isFeriado = state.feriados.some(f => f.data === dia.data);
-            const isDomingo = dia.diaSemana === 'Dom';
-            const isDescanso = isFeriado || isDomingo;
+            const isDescanso = dia.isDiaDescanso;
             
             let rowStyle = index % 2 === 0 ? 'background-color: #ffffff;' : 'background-color: #f9fafb;';
             if (isDescanso) rowStyle = 'background-color: #fef2f2; color: #991b1b;';
             
             const marcacoes = [dia.entrada1, dia.saida1, dia.entrada2, dia.saida2].filter(v => v).join(' - ') || '-';
-            const infoExtra = isFeriado ? `<span style="font-size: 10px; font-weight: bold; background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; margin-left: 5px;">FERIADO</span>` : '';
+            
+            // ✅ CORRIGIDO: Incluir DSR nos flags
+            let flags = '';
+            if (dia.flagDSR) {
+                flags += '<span style="background: #4f46e5; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 10px; margin-right: 4px;">DSR</span>';
+            }
+            if (dia.flagFolga) {
+                flags += '<span style="background: #d1fae5; color: #065f46; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 10px; margin-right: 4px;">FOLGA</span>';
+            }
+            if (dia.flagFalta) {
+                flags += '<span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 10px; margin-right: 4px;">FALTA</span>';
+            }
+            if (isFeriado) {
+                flags += '<span style="background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 10px;">FERIADO</span>';
+            }
             
             htmlTabela += `
                 <tr style="${rowStyle} border-bottom: 1px solid #e5e7eb; transition: background-color 0.2s;">
                     <td style="padding: 10px 15px; font-weight: 500;">
                         ${dia.data} <span style="color: ${isDescanso ? '#991b1b' : '#9ca3af'}; font-weight: normal; font-size: 11px;">(${dia.diaSemana})</span>
-                        ${infoExtra}
                     </td>
                     <td style="padding: 10px 15px; text-align: center; color: ${isDescanso ? '#991b1b' : '#4b5563'};">${marcacoes}</td>
                     <td style="padding: 10px 15px; text-align: center; font-weight: 600; color: ${isDescanso ? '#991b1b' : '#1f2937'};">${dia.trabalhado !== '00:00' ? dia.trabalhado : '-'}</td>
                     <td style="padding: 10px 15px; text-align: center; color: ${isDescanso ? '#991b1b' : '#4b5563'};">${dia.extra50 !== '00:00' ? dia.extra50 : '-'}</td>
                     <td style="padding: 10px 15px; text-align: center; color: ${isDescanso ? '#991b1b' : '#4b5563'};">${dia.extra100 !== '00:00' ? dia.extra100 : '-'}</td>
                     <td style="padding: 10px 15px; text-align: center; color: ${isDescanso ? '#991b1b' : '#4b5563'};">${dia.noturnoConvertido !== '00:00' ? dia.noturnoConvertido : '-'}</td>
-                    <td style="padding: 10px 15px; text-align: center; color: #991b1b; font-weight: 600;">${dia.devido !== '00:00' ? dia.devido : '-'}</td>
+                    <td style="padding: 10px 15px; text-align: center; color: #991b1b; font-weight: 600;">${dia.faltante !== '00:00' ? dia.faltante : '-'}</td>
+                    <td style="padding: 10px 15px; text-align: center;">${flags || '-'}</td>
                 </tr>
             `;
         });
@@ -836,104 +1356,111 @@ function exportarParaExcel() {
     const compFormatada = state.competencia.replace('/', '-');
     const infoCabecalho = `Empresa: ${state.empresaSelecionada.codigo_empresa} - ${state.empresaSelecionada.nome_empresa} | Competência: ${state.competencia}`;
 
-    // 1. Criar array para o Consolidado Geral
-    const dadosConsolidadoGeral = [];
+// 1. Criar array para o Consolidado Geral
+const dadosConsolidadoGeral = [];
 
-    // 2. Gerar abas individuais para cada empregado
-    state.resultados.forEach(res => {
-        // Adicionar ao Consolidado Geral
-        dadosConsolidadoGeral.push({
-            'Matrícula': res.empregadoId,
-            'Empregado': res.nome,
-            'Horas Trabalhadas': res.totais.trabalhado,
-            'Horas Extras 50%': res.totais.extra50,
-            'Horas Extras 100%': res.totais.extra100,
-            'Adicional Noturno': res.totais.noturnoConvertido,
-            'Faltas/Atrasos': res.totais.devido
-        });
-
-        // Preparar dados da aba individual
-        const dadosAbaIndividual = [
-            // Linha de cabeçalho com informações da empresa
-            { 'Data': infoCabecalho, 'Dia da Semana': '', 'Entradas/Saídas': '', 'Trabalhado': '', 'Extra 50%': '', 'Extra 100%': '', 'Noturno': '', 'Falta/Atraso': '' },
-            { 'Data': '', 'Dia da Semana': '', 'Entradas/Saídas': '', 'Trabalhado': '', 'Extra 50%': '', 'Extra 100%': '', 'Noturno': '', 'Falta/Atraso': '' }, // Linha em branco
-            // Cabeçalhos reais
-            { 'Data': 'Data', 'Dia da Semana': 'Dia da Semana', 'Entradas/Saídas': 'Entradas/Saídas', 'Trabalhado': 'Trabalhado', 'Extra 50%': 'Extra 50%', 'Extra 100%': 'Extra 100%', 'Noturno': 'Noturno', 'Falta/Atraso': 'Falta/Atraso' }
-        ];
-
-        // Adicionar dias
-        res.dias.forEach(dia => {
-            const isFeriado = state.feriados.some(f => f.data === dia.data);
-            const isDomingo = dia.diaSemana === 'Dom';
-            const tipoDia = isFeriado ? 'Feriado' : (isDomingo ? 'Domingo' : dia.diaSemana);
-            const marcacoes = [dia.entrada1, dia.saida1, dia.entrada2, dia.saida2].filter(v => v).join(' - ') || '-';
-
-            dadosAbaIndividual.push({
-                'Data': dia.data,
-                'Dia da Semana': tipoDia,
-                'Entradas/Saídas': marcacoes,
-                'Trabalhado': dia.trabalhado !== '00:00' ? dia.trabalhado : '-',
-                'Extra 50%': dia.extra50 !== '00:00' ? dia.extra50 : '-',
-                'Extra 100%': dia.extra100 !== '00:00' ? dia.extra100 : '-',
-                'Noturno': dia.noturnoConvertido !== '00:00' ? dia.noturnoConvertido : '-',
-                'Falta/Atraso': dia.devido !== '00:00' ? dia.devido : '-'
-            });
-        });
-
-        // Adicionar totais no final da aba individual
-        dadosAbaIndividual.push({ 'Data': '', 'Dia da Semana': '', 'Entradas/Saídas': '', 'Trabalhado': '', 'Extra 50%': '', 'Extra 100%': '', 'Noturno': '', 'Falta/Atraso': '' });
-        dadosAbaIndividual.push({
-            'Data': 'TOTAIS',
-            'Dia da Semana': '',
-            'Entradas/Saídas': '',
-            'Trabalhado': res.totais.trabalhado,
-            'Extra 50%': res.totais.extra50,
-            'Extra 100%': res.totais.extra100,
-            'Noturno': res.totais.noturnoConvertido,
-            'Falta/Atraso': res.totais.devido
-        });
-
-        // Criar a sheet individual (pulando o cabeçalho padrão do SheetJS para usar o nosso customizado)
-        const wsDiario = XLSX.utils.json_to_sheet(dadosAbaIndividual, { skipHeader: true });
-        
-        // Ajustar largura das colunas
-        wsDiario['!cols'] = [
-            { wch: 12 }, // Data
-            { wch: 15 }, // Dia da Semana
-            { wch: 25 }, // Entradas/Saídas
-            { wch: 12 }, // Trabalhado
-            { wch: 12 }, // Extra 50%
-            { wch: 12 }, // Extra 100%
-            { wch: 12 }, // Noturno
-            { wch: 12 }  // Falta/Atraso
-        ];
-
-        let nomeAba = res.nome.substring(0, 31).replace(/[\/?*\[\]]/g, '');
-        XLSX.utils.book_append_sheet(wb, wsDiario, nomeAba);
+// 2. Gerar abas individuais para cada empregado
+state.resultados.forEach(res => {
+    // Adicionar ao Consolidado Geral
+    dadosConsolidadoGeral.push({
+        'Matrícula': res.empregadoId,
+        'Empregado': res.nome,
+        'Horas Trabalhadas': res.totais.trabalhado,
+        'Horas Extras 50%': res.totais.extra50,
+        'Horas Extras 100%': res.totais.extra100,
+        'Adicional Noturno': res.totais.noturnoConvertido,
+        'Horas Faltantes': res.totais.faltante,
+        'Horas Devidas': res.totais.devidas
     });
 
-    // 3. Criar aba Consolidado Geral
-    const dadosConsolidadoComCabecalho = [
-        { 'Matrícula': infoCabecalho, 'Empregado': '', 'Horas Trabalhadas': '', 'Horas Extras 50%': '', 'Horas Extras 100%': '', 'Adicional Noturno': '', 'Faltas/Atrasos': '' },
-        { 'Matrícula': '', 'Empregado': '', 'Horas Trabalhadas': '', 'Horas Extras 50%': '', 'Horas Extras 100%': '', 'Adicional Noturno': '', 'Faltas/Atrasos': '' },
-        { 'Matrícula': 'Matrícula', 'Empregado': 'Empregado', 'Horas Trabalhadas': 'Horas Trabalhadas', 'Horas Extras 50%': 'Horas Extras 50%', 'Horas Extras 100%': 'Horas Extras 100%', 'Adicional Noturno': 'Adicional Noturno', 'Faltas/Atrasos': 'Faltas/Atrasos' },
-        ...dadosConsolidadoGeral
+    // Preparar dados da aba individual
+    const dadosAbaIndividual = [
+        { 'Data': infoCabecalho, 'Dia da Semana': '', 'Entradas/Saídas': '', 'Trabalhado': '', 'Extra 50%': '', 'Extra 100%': '', 'Noturno': '', 'Faltante': '', 'Flags': '' },
+        { 'Data': '', 'Dia da Semana': '', 'Entradas/Saídas': '', 'Trabalhado': '', 'Extra 50%': '', 'Extra 100%': '', 'Noturno': '', 'Faltante': '', 'Flags': '' },
+        { 'Data': 'Data', 'Dia da Semana': 'Dia da Semana', 'Entradas/Saídas': 'Entradas/Saídas', 'Trabalhado': 'Trabalhado', 'Extra 50%': 'Extra 50%', 'Extra 100%': 'Extra 100%', 'Noturno': 'Noturno', 'Faltante': 'Faltante', 'Flags': 'Flags' }
     ];
 
-    const wsConsolidado = XLSX.utils.json_to_sheet(dadosConsolidadoComCabecalho, { skipHeader: true });
+    // Adicionar dias
+    res.dias.forEach(dia => {
+        const isFeriado = state.feriados.some(f => f.data === dia.data);
+        const tipoDia = isFeriado ? 'Feriado' : dia.diaSemana;
+        const marcacoes = [dia.entrada1, dia.saida1, dia.entrada2, dia.saida2].filter(v => v).join(' - ') || '-';
+        
+     // ✅ NOVO: Gerar string de flags com DSR
+// ✅ NOVO: Gerar string de flags com DSR
+let flagsStr = '';
+if (dia.flagDSR) flagsStr += 'DSR '; // ✅ Verificar flagDSR
+if (dia.flagFolga) flagsStr += 'FOLGA ';
+if (dia.flagFalta) flagsStr += 'FALTA ';
+if (isFeriado) flagsStr += 'FERIADO ';
+
+dadosAbaIndividual.push({
+    'Data': dia.data,
+    'Dia da Semana': tipoDia,
+    'Entradas/Saídas': marcacoes,
+    'Trabalhado': dia.trabalhado !== '00:00' ? dia.trabalhado : '-',
+    'Extra 50%': dia.extra50 !== '00:00' ? dia.extra50 : '-',
+    'Extra 100%': dia.extra100 !== '00:00' ? dia.extra100 : '-',
+    'Noturno': dia.noturnoConvertido !== '00:00' ? dia.noturnoConvertido : '-',
+    'Faltante': dia.faltante !== '00:00' ? dia.faltante : '-',
+    'Flags': flagsStr.trim()
+});
+    });
+
+    // Adicionar totais no final da aba individual
+    dadosAbaIndividual.push({ 'Data': '', 'Dia da Semana': '', 'Entradas/Saídas': '', 'Trabalhado': '', 'Extra 50%': '', 'Extra 100%': '', 'Noturno': '', 'Faltante': '', 'Flags': '' });
+    dadosAbaIndividual.push({
+        'Data': 'TOTAIS',
+        'Dia da Semana': '',
+        'Entradas/Saídas': '',
+        'Trabalhado': res.totais.trabalhado,
+        'Extra 50%': res.totais.extra50,
+        'Extra 100%': res.totais.extra100,
+        'Noturno': res.totais.noturnoConvertido,
+        'Faltante': res.totais.faltante,
+        'Flags': ''
+    });
+
+    const wsDiario = XLSX.utils.json_to_sheet(dadosAbaIndividual, { skipHeader: true });
     
-    // Ajustar largura das colunas do Consolidado
-    wsConsolidado['!cols'] = [
-        { wch: 15 }, // Matrícula
-        { wch: 40 }, // Empregado
-        { wch: 18 }, // Horas Trabalhadas
-        { wch: 18 }, // Horas Extras 50%
-        { wch: 18 }, // Horas Extras 100%
-        { wch: 18 }, // Adicional Noturno
-        { wch: 18 }  // Faltas/Atrasos
+    wsDiario['!cols'] = [
+        { wch: 12 }, // Data
+        { wch: 15 }, // Dia da Semana
+        { wch: 25 }, // Entradas/Saídas
+        { wch: 12 }, // Trabalhado
+        { wch: 12 }, // Extra 50%
+        { wch: 12 }, // Extra 100%
+        { wch: 12 }, // Noturno
+        { wch: 12 }, // Faltante
+        { wch: 20 }  // Flags
     ];
 
-    XLSX.utils.book_append_sheet(wb, wsConsolidado, "Consolidado Geral");
+    let nomeAba = res.nome.substring(0, 31).replace(/[\/?*\[\]]/g, '');
+    XLSX.utils.book_append_sheet(wb, wsDiario, nomeAba);
+});
+
+// 3. Criar aba Consolidado Geral
+const dadosConsolidadoComCabecalho = [
+    { 'Matrícula': infoCabecalho, 'Empregado': '', 'Horas Trabalhadas': '', 'Horas Extras 50%': '', 'Horas Extras 100%': '', 'Adicional Noturno': '', 'Horas Faltantes': '', 'Horas Devidas': '' },
+    { 'Matrícula': '', 'Empregado': '', 'Horas Trabalhadas': '', 'Horas Extras 50%': '', 'Horas Extras 100%': '', 'Adicional Noturno': '', 'Horas Faltantes': '', 'Horas Devidas': '' },
+    { 'Matrícula': 'Matrícula', 'Empregado': 'Empregado', 'Horas Trabalhadas': 'Horas Trabalhadas', 'Horas Extras 50%': 'Horas Extras 50%', 'Horas Extras 100%': 'Horas Extras 100%', 'Adicional Noturno': 'Adicional Noturno', 'Horas Faltantes': 'Horas Faltantes', 'Horas Devidas': 'Horas Devidas' },
+    ...dadosConsolidadoGeral
+];
+
+const wsConsolidado = XLSX.utils.json_to_sheet(dadosConsolidadoComCabecalho, { skipHeader: true });
+
+wsConsolidado['!cols'] = [
+    { wch: 15 }, // Matrícula
+    { wch: 40 }, // Empregado
+    { wch: 18 }, // Horas Trabalhadas
+    { wch: 18 }, // Horas Extras 50%
+    { wch: 18 }, // Horas Extras 100%
+    { wch: 18 }, // Adicional Noturno
+    { wch: 18 }, // Horas Faltantes
+    { wch: 18 }  // Horas Devidas
+];
+
+XLSX.utils.book_append_sheet(wb, wsConsolidado, "Consolidado Geral");
 
     // 4. Salvar arquivo
     XLSX.writeFile(wb, `Folha_Ponto_${state.empresaSelecionada.codigo_empresa}_${compFormatada}.xlsx`);
@@ -1106,6 +1633,37 @@ function mostrarTela(telaId) {
     document.getElementById('mainScreen').style.display = 'none';
     document.getElementById('resultsScreen').style.display = 'none';
     document.getElementById(telaId).style.display = 'block';
+    
+    // ✅ NOVO: Exibir informações da empresa em todas as telas (exceto seleção)
+    if (telaId !== 'selectionScreen' && state.empresaSelecionada) {
+        const headerActions = document.getElementById('headerActions');
+        if (headerActions) {
+            // Remover informação anterior se existir
+            const infoEmpresa = document.getElementById('empresaInfo');
+            if (infoEmpresa) infoEmpresa.remove();
+            
+            // Adicionar nova informação
+            const div = document.createElement('div');
+            div.id = 'empresaInfo';
+            div.style.cssText = `
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                padding: 10px 15px;
+                background: rgba(255,255,255,0.1);
+                border-radius: 6px;
+                color: white;
+                font-size: 13px;
+                font-weight: 500;
+            `;
+            div.innerHTML = `
+                <span>🏢 ${state.empresaSelecionada.codigo_empresa} - ${state.empresaSelecionada.nome_empresa}</span>
+                <span style="opacity: 0.7;">|</span>
+                <span>📅 ${state.competencia}</span>
+            `;
+            headerActions.insertBefore(div, headerActions.firstChild);
+        }
+    }
 }
 
 function voltarParaEdicao() {
