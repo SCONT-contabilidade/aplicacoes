@@ -709,7 +709,7 @@
                         <li>Carteira de Trabalho digital ou física</li>
                         <li>Foto da carteira de identidade, CPF e título de eleitor</li>
                         <li>Cartão do PIS</li>
-                        <li>Foto 3x4 (atual)</li>
+                        
                         <li>Certificado de Reservista (homens)</li>
                     </ul>
                 </div>
@@ -740,11 +740,7 @@
     <div class="document-preview" id="preview_docPIS"></div>
 </div>
 
-                    <div class="document-item">
-                        <label><input type="checkbox" name="docFoto3x4"> Foto 3x4 (Atual)</label>
-                        <input type="file" name="docFoto3x4" accept=".pdf,.jpg,.jpeg,.png" onchange="window.handleFileUpload(event, 'docFoto3x4')">
-                        <div class="document-preview" id="preview_docFoto3x4"></div>
-                    </div>
+                  
 
                     <div class="document-item">
                         <label><input type="checkbox" name="docReservista"> Certificado de Reservista (Homens)</label>
@@ -1547,7 +1543,7 @@ const { data: empregadoData, error: empregadoError } = await supabase
                 'docCarteiraTrabalho': 'Documentos-de-Identificacao',
                 'docIdentidadeCPF': 'Documentos-de-Identificacao',
                 'docPIS': 'Documentos-de-Identificacao',
-                'docFoto3x4': 'Documentos-de-Identificacao',
+                
                 'docReservista': 'Documentos-de-Identificacao',
                 'docCertidaoFilhos': 'Documentos-Familiares',
                 'docComprovanteResidencia': 'Documentos-Familiares',

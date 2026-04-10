@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard SCONT - Gerenciador de Clientes</title>
+    <meta name="description" content="Dashboard de clientes para SCONT Soluções Contábeis. Gerencie apresentações de boas-vindas e acompanhe seus clientes.">
+    <meta name="theme-color" content="#8B2F39">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    /* ===== VARIÁVEIS CSS ===== */
+    :root {
+        --color-primary: #8B2F39; /* Burgundy */<br/>
+        --color-primary-light: #A84F5B; /* Burgundy Light */<br/>
+        --color-accent: #c9a961; /* Dourado */<br/>
+        --color-text-dark: #333333;<br/>
+        --color-text-medium: #555555;<br/>
+        --color-text-light: #757575;<br/>
+        --color-bg-white: #ffffff;<br/>
+        --color-bg-light-gray: #f8f8f8; /* Cinza claro */<br/>
+        --color-bg-medium-gray: #eeeeee;<br/>
+        --color-border-gray: #e0e0e0;<br/>
+        --color-success: #10b981; /* Verde */<br/>
+        --color-warning: #f59e0b; /* Laranja */<br/>
+        --color-error: #ef4444; /* Vermelho */
+
+        --font-family-main: 'Poppins', sans-serif;<br/>
+        --spacing-unit: 8px;<br/>
+        --border-radius-sm: 8px;<br/>
+        --border-radius-md: 12px;<br/>
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);<br/>
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);<br/>
+        --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.15);<br/>
+        --transition-speed: 0.3s;
+    }
+
+    /* ===== RESET & BASE ===== */
+    * {
+        margin: 0;<br/>
+        padding: 0;<br/>
+        box-sizing: border-box;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+        font-family: var(--font-family-main);<br/>
+        color: var(--color-text-dark);<br/>
+        background-color: var(--color-bg-light-gray);<br/>
+        line-height: 1.6;<br/>
+        -webkit-font-smoothing: antialiased;<br/>
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ===== LAYOUT GRID ===== */
+    .wrapper {
+        display: grid;<br/>
+        grid-template-columns: 280px 1fr; /* Sidebar fixa + Main content */<br/>
+        min-height: 100vh;<br/>
+        background-color: var(--color-bg-light-gray);
+    }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+        background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));<br/>
+        color: white;<br/>
+        padding: calc(var(--spacing-unit) * 5) calc(var(--spacing-unit) * 3);<br/>
+        box-shadow: var(--shadow-lg);<br/>
+        position: fixed; /* Fixa a sidebar */<br/>
+        width: 280px;<br/>
+        height: 100vh;<br/>
+        overflow-y: auto; /* Scroll se o conteúdo for maior que a tela */<br/>
+        z-index: 1000;
+    }
+
+    .logo {
+        display: flex;<br/>
+        align-items: center;<br/>
+        gap: calc(var(--spacing-unit) * 2);<br/>
+        margin-bottom: calc(var(--spacing-unit) * 5);<br/>
+        padding-bottom: calc(var(--spacing-unit) * 4);<br/>
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .logo-img {
+        width: 50px;<br/>
+        height: auto;<br/>
+        border-radius: 50%;<br/>
+        background: rgba(255, 255, 255, 0.1);<br/>
+        padding: calc(var(--spacing-unit) * 1);
+    }
+
+    .logo-text h1 {
+        font-size: 18px;<br/>
+        font-weight: 700;<br/>
+        margin-bottom: 2px;
+    }
+
+    .logo-text p {
+        font-size: 11px;<br/>
+        opacity: 0.8;
+    }
+
+    .nav-menu {
+        list-style: none;<br/>
+        padding: 0;
+    }
+
+    .nav-item {
+        margin-bottom: calc(var(--spacing-unit) * 2);
+    }
+
+    .nav-link {
+        display: flex;<br/>
+        align-items: center;<br/>
+        gap: calc(var(--spacing-unit) * 2);<br/>
+        padding: calc(var(--spacing-unit) * 2.5) calc(var(--spacing-unit) * 3);<br/>
+        color: white;<br/>
+        text-decoration: none;<br/>
+        border-radius: var(--border-radius-sm);<br/>
+        transition: all var(--transition-speed) ease;<br/>
+        font-weight: 500;<br/>
+        font-size: 14px;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+        background: rgba(255, 255, 255, 0.15);<br/>
+        transform: translateX(5px);
+    }
+
+    .nav-link.active {
+        background: rgba(255, 255, 255, 0.2);<br/>
+        border-left: 3px solid var(--color-accent); /* Dourado */<br/>
+        padding-left: calc(var(--spacing-unit) * 2.7);
+    }
+
+    .nav-icon {
+        font-size: 18px;<br/>
+        min-width: 20px;<br/>
+        text-align: center;
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    .main {
+        margin-left: 280px; /* Offset para a sidebar */<br/>
+        padding: calc(var(--spacing-unit) * 6);<br/>
+        flex-grow: 1;
+    }
+
+    .main-header {
+        background: var(--color-bg-white);<br/>
+        padding: calc(var(--spacing-unit) * 4);<br/>
+        border-radius: var(--border-radius-md);<br/>
+        box-shadow: var(--shadow-sm);<br/>
+        margin-bottom: calc(var(--spacing-unit) * 6);<br/>
+        display: flex;<br/>
+        justify-content: space-between;<br/>
+        align-items: center;<br/>
+        flex-wrap: wrap;<br/>
+        gap: calc(var(--spacing-unit) * 3);
+    }
+
+    .main-header h1 {
+        font-size: 28px;<br/>
+        color: var(--color-primary);<br/>
+        margin-bottom: calc(var(--spacing-unit) * 1);
+    }
+
+    .main-header p {
+        font-size: 13px;<br/>
+        color: var(--color-text-light);
+    }
+
+    .btn {
+        display: inline-flex;<br/>
+        align-items: center;<br/>
+        gap: calc(var(--spacing-unit) * 2);<br/>
+        padding: calc(var(--spacing-unit) * 3) calc(var(--spacing-unit) * 5);<br/>
+        background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));<br/>
+        color: white;<br/>
+        border: none;<br/>
+        border-radius: var(--border-radius-sm);<br/>
+        font-family: var(--font-family-main);<br/>
+        font-size: 14px;<br/>
+        font-weight: 600;<br/>
+        cursor: pointer;<br/>
+        transition: all var(--transition-speed) ease;<br/>
+        text-decoration: none;<br/>
+        white-space: nowrap;
+    }
+
+    .btn:hover {<br/>
+        transform: translateY(-2px);<br/>
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-secondary {
+        background: transparent;<br/>
+        color: var(--color-primary);<br/>
+        border: 2px solid var(--color-primary);
+    }
+
+    .btn-secondary:hover {<br/>
+        background: var(--color-primary);<br/>
+        color: white;
+    }
+
+    /* ===== STATS GRID ===== */
+    .stats-grid {
+        display: grid;<br/>
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));<br/>
+        gap: calc(var(--spacing-unit) * 4);<br/>
+        margin-bottom: calc(var(--spacing-unit) * 8);
+    }
+
+    .stat-card {
+        background: var(--color-bg-white);<br/>
+        padding: calc(var(--spacing-unit) * 4);<br/>
+        border-radius: var(--border-radius-md);<br/>
+        box-shadow: var(--shadow-sm);<br/>
+        text-align: center;<br/>
+        transition: all var(--transition-speed) ease;
+    }
+
+    .stat-card:hover {<br/>
+        transform: translateY(-5px);<br/>
+        box-shadow: var(--shadow-md);
+    }
+
+    .stat-number {
+        font-size: 36px;<br/>
+        font-weight: 700;<br/>
+        color: var(--color-primary);<br/>
+        margin-bottom: calc(var(--spacing-unit) * 1);
+    }
+
+    .stat-label {
+        font-size: 13px;<br/>
+        color: var(--color-text-light);<br/>
+        text-transform: uppercase;<br/>
+        letter-spacing: 0.5px;
+    }
+
+    /* ===== TABLE ===== */
+    .table-container {
+        background: var(--color-bg-white);<br/>
+        border-radius: var(--border-radius-md);<br/>
+        box-shadow: var(--shadow-sm);<br/>
+        overflow: hidden;
+    }
+
+    .table-header {
+        padding: calc(var(--spacing-unit) * 4);<br/>
+        border-bottom: 1px solid var(--color-border-gray);<br/>
+        display: flex;<br/>
+        justify-content: space-between;<br/>
+        align-items: center;<br/>
+        flex-wrap: wrap;<br/>
+        gap: calc(var(--spacing-unit) * 2);
+    }
+
+    .table-header h2 {
+        font-size: 18px;<br/>
+        color: var(--color-primary);
+    }
+
+    table {
+        width: 100%;<br/>
+        border-collapse: collapse;<br/>
+        table-layout: fixed; /* Ajuda na responsividade */
+    }
+
+    thead {
+        background: var(--color-bg-light-gray);
+    }
+
+    th {
+        padding: calc(var(--spacing-unit) * 3);<br/>
+        text-align: left;<br/>
+        font-weight: 600;<br/>
+        color: var(--color-text-dark);<br/>
+        font-size: 13px;<br/>
+        text-transform: uppercase;<br/>
+        letter-spacing: 0.5px;
+    }
+
+    td {
+        padding: calc(var(--spacing-unit) * 3);<br/>
+        border-bottom: 1px solid var(--color-border-gray);<br/>
+        font-size: 14px;<br/>
+        word-wrap: break-word; /* Quebra palavras longas */
+    }
+
+    tr:hover {<br/>
+        background: var(--color-bg-light-gray);
+    }
+
+    .client-name {
+        font-weight: 600;<br/>
+        color: var(--color-primary);
+    }
+
+    .status-badge {
+        display: inline-block;<br/>
+        padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 2.5);<br/>
+        border-radius: 20px;<br/>
+        font-size: 12px;<br/>
+        font-weight: 600;<br/>
+        white-space: nowrap;
+    }
+
+    .status-active {
+        background: rgba(16, 185, 129, 0.1);<br/>
+        color: var(--color-success);
+    }
+
+    .status-pending {
+        background: rgba(245, 158, 11, 0.1);<br/>
+        color: var(--color-warning);
+    }
+
+    .actions {
+        display: flex;<br/>
+        gap: calc(var(--spacing-unit) * 1);<br/>
+        flex-wrap: wrap;<br/>
+        justify-content: flex-start;
+    }
+
+    .btn-small {
+        padding: calc(var(--spacing-unit) * 1.5) calc(var(--spacing-unit) * 2.5);<br/>
+        font-size: 12px;<br/>
+        background: transparent;<br/>
+        color: var(--color-primary);<br/>
+        border: 1px solid var(--color-border-gray);<br/>
+        border-radius: var(--border-radius-sm);<br/>
+        cursor: pointer;<br/>
+        transition: all var(--transition-speed) ease;<br/>
+        white-space: nowrap;
+    }
+
+    .btn-small:hover {<br/>
+        background: var(--color-bg-light-gray);<br/>
+        border-color: var(--color-primary);
+    }
+
+    /* ===== PAGINATION ===== */
+    .pagination {
+        padding: calc(var(--spacing-unit) * 3) calc(var(--spacing-unit) * 4);<br/>
+        text-align: center;<br/>
+        font-size: 13px;<br/>
+        color: var(--color-text-light);
+    }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+        text-align: center;<br/>
+        padding: calc(var(--spacing-unit) * 10) calc(var(--spacing-unit) * 4);
+    }
+
+    .empty-state-icon {
+        font-size: 64px;<br/>
+        margin-bottom: calc(var(--spacing-unit) * 3);
+    }
+
+    .empty-state h3 {
+        font-size: 20px;<br/>
+        color: var(--color-primary);<br/>
+        margin-bottom: calc(var(--spacing-unit) * 2);
+    }
+
+    .empty-state p {
+        color: var(--color-text-light);<br/>
+        margin-bottom: calc(var(--spacing-unit) * 4);
+    }
+
+    /* ===== RESPONSIVIDADE ===== */
+    /* Tablet e Telas Médias (até 1024px) */
+    @media (max-width: 1024px) {
+        .main {
+            padding: calc(var(--spacing-unit) * 4);
+        }
+        .main-header h1 {
+            font-size: 24px;
+        }
+        .stats-grid {
+            gap: calc(var(--spacing-unit) * 3);
+        }
+        th, td {
+            padding: calc(var(--spacing-unit) * 2.5);<br/>
+            font-size: 13px;
+        }
+        .btn-small {
+            padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 2);<br/>
+            font-size: 11px;
+        }
+    }
+
+    /* Mobile (até 768px) */
+    @media (max-width: 768px) {
+        .wrapper {
+            grid-template-columns: 1fr; /* Sidebar e Main em coluna */
+        }
+
+        .sidebar {
+            position: relative; /* Sidebar não fixa */<br/>
+            width: 100%;<br/>
+            height: auto;<br/>
+            padding: calc(var(--spacing-unit) * 4);
+        }
+
+        .main {
+            margin-left: 0; /* Remove offset */<br/>
+            padding: calc(var(--spacing-unit) * 3);
+        }
+
+        .main-header {
+            flex-direction: column;<br/>
+            align-items: flex-start;<br/>
+            gap: calc(var(--spacing-unit) * 3);
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr 1fr; /* 2 colunas */
+        }
+
+        /* Tabela responsiva */
+        table, thead, tbody, th, td, tr {
+            display: block;
+        }
+
+        thead tr {
+            position: absolute;<br/>
+            top: -9999px;<br/>
+            left: -9999px;
+        }
+
+        tr {
+            border: 1px solid var(--color-border-gray);<br/>
+            margin-bottom: calc(var(--spacing-unit) * 3);<br/>
+            border-radius: var(--border-radius-md);<br/>
+            overflow: hidden;
+        }
+
+        td {
+            border: none;<br/>
+            border-bottom: 1px solid var(--color-border-gray);<br/>
+            position: relative;<br/>
+            padding-left: 50%; /* Espaço para o label */<br/>
+            text-align: right;
+        }
+
+        td:last-child {<br/>
+            border-bottom: none;
+        }
+
+        td::before {<br/>
+            content: attr(data-label); /* Usa o atributo data-label */<br/>
+            position: absolute;<br/>
+            left: 0;<br/>
+            width: 45%;<br/>
+            padding-left: calc(var(--spacing-unit) * 2);<br/>
+            font-weight: 600;<br/>
+            text-align: left;<br/>
+            color: var(--color-primary);<br/>
+            font-size: 13px;<br/>
+            text-transform: uppercase;
+        }
+
+        .actions {
+            justify-content: flex-end;
+        }
+    }
+
+    /* Mobile Pequeno (até 480px) */
+    @media (max-width: 480px) {
+        .main-header h1 {
+            font-size: 22px;
+        }
+        .stats-grid {
+            grid-template-columns: 1fr; /* 1 coluna */
+        }
+        .btn {
+            width: 100%;<br/>
+            justify-content: center;
+        }
+        .logo-text h1 {
+            font-size: 16px;
+        }
+        .logo-text p {
+            font-size: 10px;
+        }
+    }
+</style>
+
+    
+        
+        
+            
+                
+                
+                    SCONT
+                    Dashboard Administrativo
+                
+                    <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="#" class="nav-link active">
+                    <span class="nav-icon">🏠</span>
+                    Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="admin.html" class="nav-link">
+                    <span class="nav-icon">➕</span>
+                    Novo Cliente
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <span class="nav-icon">📈</span>
+                    Relatórios
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <span class="nav-icon">⚙️</span>
+                    Configurações
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <span class="nav-icon">📚</span>
+                    Ajuda
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+        <!-- HEADER PRINCIPAL -->
+        <div class="main-header">
+            <div>
+                <h1>Dashboard de Clientes</h1>
+                <p>Gerenciador de apresentações de boas-vindas SCONT</p>
+            </div>
+            <a href="admin.html" class="btn">
+                <span>➕</span>
+                Criar Nova Apresentação
+            </a>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalClients">0</div>
+                <div class="stat-label">Total de Clientes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalValidated">0</div>
+                <div class="stat-label">Validados</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalPending">0</div>
+                <div class="stat-label">Pendentes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalLinks">0</div>
+                <div class="stat-label">Links Gerados</div>
+            </div>
+        </div>
+
+        <!-- CLIENTS TABLE -->
+        <div class="table-container">
+            <div class="table-header">
+                <h2>Clientes Cadastrados</h2>
+            </div>
+
+            <div id="tableContent">
+                <!-- Conteúdo da tabela ou empty state será renderizado aqui pelo JavaScript -->
+            </div>
+
+            <div class="pagination">
+                <p id="paginationInfo">Nenhum cliente cadastrado</p>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    // ===== GERENCIAMENTO DE CLIENTES =====
+    class ClientDashboard {
+        constructor() {
+            this.clients = [];
+            this.CLIENT_PREFIX = 'scont_client_'; // Prefixo para chaves de clientes no localStorage
+            this.init();
+        }
+
+        init() {
+            this.loadClients();
+            this.updateStats();
+            this.renderTable();
+            console.log('✅ Dashboard inicializado. Clientes carregados:', this.clients.length);
+        }
+
+        /**
+         * Carrega todos os clientes do localStorage.
+         * Filtra por chaves que começam com CLIENT_PREFIX.
+         * Ordena os clientes pela data de criação (mais recente primeiro).
+         */
+        loadClients() {
+            const loadedClients = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(this.CLIENT_PREFIX)) {
+                    try {
+                        const clientData = JSON.parse(localStorage.getItem(key));
+                        // Adiciona o clientId ao objeto para facilitar o uso
+                        clientData.clientId = key.replace(this.CLIENT_PREFIX, '');
+                        loadedClients.push(clientData);
+                    } catch (e) {
+                        console.error('❌ Erro ao carregar cliente do localStorage:', key, e);
+                    }
+                }
+            }
+            // Ordena por data de criação (mais recente primeiro)
+            this.clients = loadedClients.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        }
+
+        /**
+         * Atualiza os cartões de estatísticas no dashboard.
+         */
+        updateStats() {
+            document.getElementById('totalClients').textContent = this.clients.length;
+            
+            // Exemplo de status, pode ser expandido com base em um campo 'status' no clientData
+            const validated = this.clients.filter(c => c.status === 'validated').length; // Supondo um campo 'status'
+            document.getElementById('totalValidated').textContent = validated;
+            
+            const pending = this.clients.length - validated;
+            document.getElementById('totalPending').textContent = pending;
+            
+            document.getElementById('totalLinks').textContent = this.clients.length; // Cada cliente tem um link
+        }
+
+        /**
+         * Renderiza a tabela de clientes ou o estado vazio.
+         */
+        renderTable() {
+            const tableContent = document.getElementById('tableContent');
+            const paginationInfo = document.getElementById('paginationInfo');
+
+            if (this.clients.length === 0) {
+                tableContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <h3>Nenhum Cliente Cadastrado</h3>
+                        <p>Comece criando uma nova apresentação de boas-vindas para um cliente.</p>
+                        <a href="admin.html" class="btn">
+                            <span>➕</span>
+                            Criar Primeira Apresentação
+                        </a>
+                    </div>
+                `;
+                paginationInfo.textContent = 'Nenhum cliente cadastrado';
+                return;
+            }
+
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Razão Social</th>
+                            <th>CNPJ</th>
+                            <th>Segmento</th>
+                            <th>Status</th>
+                            <th>Data Criação</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            this.clients.forEach(client => {
+                const dataFormatada = new Date(client.timestamp).toLocaleDateString('pt-BR');
+                // Exemplo de status, pode ser ajustado conforme sua lógica de status
+                const currentStatus = client.status || 'pending'; // Default para 'pending'
+                const statusClass = currentStatus === 'validated' ? 'status-active' : 'status-pending';<br/>
+                const statusText = currentStatus === 'validated' ? '✓ Validado' : '⏳ Pendente';
+                
+                // Constrói a URL do client.html
+                const linkUrl = `${window.location.origin}${window.location.pathname.replace('index.html', 'client.html')}?id=${client.clientId}`;
+
+                tableHTML += `
+                    <tr>
+                        <td data-label="Razão Social" class="client-name">${client.companyData.razaoSocial || 'N/A'}</td>
+                        <td data-label="CNPJ">${client.companyData.cnpj || 'N/A'}</td>
+                        <td data-label="Segmento">${client.companyData.segmento || 'N/A'}</td>
+                        <td data-label="Status"><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td data-label="Data Criação">${dataFormatada}</td>
+                        <td data-label="Ações">
+                            <div class="actions">
+                                <button class="btn-small" onclick="dashboard.copyLink('${linkUrl}')">Copiar Link</button>
+                                <button class="btn-small" onclick="dashboard.viewClient('${client.clientId}')">Visualizar</button>
+                                <button class="btn-small" onclick="dashboard.deleteClient('${client.clientId}')" style="color: var(--color-error);">Deletar</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+
+            tableContent.innerHTML = tableHTML;
+            paginationInfo.textContent = `Exibindo ${this.clients.length} cliente(s)`;
+        }
+
+        /**
+         * Copia o link de apresentação para a área de transferência.
+         * @param {string} url - A URL a ser copiada.
+         */
+        copyLink(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                alert('✅ Link copiado para a área de transferência!');
+                console.log('📋 Link copiado:', url);
+            }).catch(err => {
+                alert('❌ Erro ao copiar link. Por favor, copie manualmente.');
+                console.error('Erro ao copiar link:', err);
+            });
+        }
+
+        /**
+         * Abre a apresentação do cliente em uma nova aba.
+         * @param {string} clientId - O ID do cliente.
+         */
+        viewClient(clientId) {
+            const url = `${window.location.origin}${window.location.pathname.replace('index.html', 'client.html')}?id=${clientId}`;
+            window.open(url, '_blank');
+            console.log('👁️ Visualizando cliente:', clientId, 'URL:', url);
+        }
+
+        /**
+         * Deleta um cliente do localStorage e atualiza o dashboard.
+         * @param {string} clientId - O ID do cliente a ser deletado.
+         */
+        deleteClient(clientId) {
+            if (confirm('Tem certeza que deseja deletar este cliente? Esta ação é irreversível.')) {
+                localStorage.removeItem(this.CLIENT_PREFIX + clientId);
+                this.loadClients(); // Recarrega a lista de clientes
+                this.init(); // Re-inicializa o dashboard para atualizar a UI
+                alert('✅ Cliente deletado com sucesso!');
+                console.log('🗑️ Cliente deletado:', clientId);
+            }
+        }
+    }
+
+    // ===== INICIALIZAÇÃO DO DASHBOARD =====
+    let dashboard;
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('=== INDEX.HTML (DASHBOARD) CARREGADO ===');
+        dashboard = new ClientDashboard();
+    });
+</script>
+</body>
+</html>
