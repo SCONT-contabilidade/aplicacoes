@@ -198,6 +198,7 @@ function filterForms() {
 // ==========================================
 // 3. VISUALIZAÇÃO DE DETALHES (MODAL E PÁGINA)
 // ==========================================
+// ===== VISUALIZAÇÃO DE DETALHES (MODAL) =====
 async function openFormDetails(formId) {
     try {
         const form = window.allForms.find(f => f.id === formId);
@@ -210,10 +211,36 @@ async function openFormDetails(formId) {
         const modalBody = document.getElementById('modalBody');
         const modalTitle = document.getElementById('modalTitle');
 
+        // Mostrar loading enquanto busca os sócios
+        modalBody.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>Carregando detalhes e sócios...</p></div>';
+        modal.style.display = 'flex';
+
+        let sociosDoBanco = [];
+
+        // Buscar sócios na tabela 'socios' se for registro ou alteração
+        if (form.tipo_formulario === 'registro' || form.tipo_formulario === 'alteracao') {
+            if (supabaseClient) {
+                try {
+                    const { data: socios, error } = await supabaseClient
+                        .from('socios')
+                        .select('*')
+                        .eq('formulario_id', formId)
+                        .order('numero_socio', { ascending: true });
+
+                    if (!error && socios) {
+                        sociosDoBanco = socios;
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Erro ao buscar sócios:', e);
+                }
+            }
+        }
+
         const nome = form.nome_empresa || form.nome_completo || form.nomeEmpresa || form.nomeCompleto;
         modalTitle.textContent = `Detalhes - ${sanitizeOutput(nome)}`;
-        modalBody.innerHTML = createDetailContent(form);
-        modal.style.display = 'flex';
+        
+        // Passamos os sócios encontrados como segundo parâmetro
+        modalBody.innerHTML = createDetailContent(form, sociosDoBanco);
         
         window.currentFormId = formId;
         window.currentForm = form;
@@ -221,6 +248,7 @@ async function openFormDetails(formId) {
     } catch (error) {
         console.error('❌ Erro ao abrir detalhes:', error);
         showError('Erro ao carregar detalhes');
+        closeModal();
     }
 }
 
@@ -259,48 +287,16 @@ async function loadFormDetails(formId) {
     }
 }
 
-function createDetailContent(form) {
+function createDetailContent(form, sociosDoBanco = []) {
     const tipo = getTipoFormulario(form.tipo_formulario);
     const status = form.status || 'Recebido';
     const dataFormatada = new Date(form.created_at || form.data_preenchimento || Date.now()).toLocaleDateString('pt-BR');
     
-    // Extrair dados principais
     const nome = form.nome_empresa || form.nome_completo || form.nomeEmpresa || form.nomeCompleto || '-';
     const email = form.email_comercial || form.email || form.emailComercial || '-';
     const telefone = form.telefone_comercial || form.celular || form.telefoneComercial || '-';
 
     let conteudoAdicional = '';
-
-    // ==========================================
-    // FUNÇÃO AUXILIAR: EXTRAIR SÓCIOS
-    // ==========================================
-    function extrairSocios(formData) {
-        const socios = [];
-        // Procura por chaves que começam com 'socio' e terminam com 'Nome' (ex: socio1Nome, socio2Nome)
-        for (let i = 1; i <= 10; i++) { // Assumindo um máximo de 10 sócios para busca
-            const prefix = `socio${i}`;
-            if (formData[`${prefix}Nome`]) {
-                socios.push({
-                    numero: i,
-                    nome: formData[`${prefix}Nome`],
-                    admin: formData[`${prefix}Admin`] === 'sim' ? 'Sim' : 'Não',
-                    respCNPJ: formData[`${prefix}CNPJ`] ? 'Sim' : 'Não',
-                    estadoCivil: formData[`${prefix}EstadoCivil`] || '-',
-                    regimePartilha: formData[`${prefix}RegimePartilha`] || '-',
-                    naturalidade: formData[`${prefix}Naturalidade`] || '-',
-                    profissao: formData[`${prefix}Profissao`] || '-',
-                    endereco: formData[`${prefix}EnderecoResidencial`] || '-',
-                    cep: formData[`${prefix}CEP`] || '-',
-                    celular: formData[`${prefix}Celular`] || '-',
-                    email: formData[`${prefix}Email`] || '-',
-                    participacao: formData[`${prefix}Participacao`] || '0'
-                });
-            }
-        }
-        return socios;
-    }
-
-    const sociosEncontrados = extrairSocios(form);
 
     // ==========================================
     // 1. REGISTRO DE EMPRESA
@@ -512,7 +508,7 @@ function createDetailContent(form) {
                         <div class="detail-value">${form.tem_filhos ? 'Sim' : 'Não'}</div>
                     </div>
                     <div class="detail-field">
-                        <span class="detail-label">Quantidade de Filhos (< 14 anos)</span>
+                        <span class="detail-label">Quantidade de Filhos (&lt; 14 anos)</span>
                         <div class="detail-value">${form.quantidade_filhos || 0}</div>
                     </div>
                 </div>
@@ -574,70 +570,74 @@ function createDetailContent(form) {
         `;
     }
 
-    // ==========================================
-    // RENDERIZAR SÓCIOS (SE EXISTIREM)
+       // ==========================================
+    // RENDERIZAR SÓCIOS DO BANCO DE DADOS
     // ==========================================
     let sociosHtml = '';
-    if (sociosEncontrados.length > 0) {
+    if (sociosDoBanco && sociosDoBanco.length > 0) {
         sociosHtml = `
             <div class="detail-section">
-                <div class="detail-section-title">👥 Dados dos Sócios (${sociosEncontrados.length})</div>
-                ${sociosEncontrados.map(socio => `
+                <div class="detail-section-title">👥 Dados dos Sócios (${sociosDoBanco.length})</div>
+                ${sociosDoBanco.map(socio => `
                     <div style="background: #f8f9fa; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 15px; margin-bottom: 15px;">
                         <h4 style="color: var(--primary-color); margin-bottom: 10px; border-bottom: 1px solid var(--gray-200); padding-bottom: 5px;">
-                            Sócio #${socio.numero}: ${sanitizeOutput(socio.nome)}
+                            Sócio #${socio.numero_socio || '?'}: ${sanitizeOutput(socio.nome || '-')}
                         </h4>
                         <div class="detail-row">
                             <div class="detail-field">
                                 <span class="detail-label">Administrador</span>
-                                <div class="detail-value" style="background: white;">${socio.admin}</div>
+                                <div class="detail-value" style="background: white;">${socio.administrador ? 'Sim' : 'Não'}</div>
                             </div>
                             <div class="detail-field">
                                 <span class="detail-label">Responsável CNPJ</span>
-                                <div class="detail-value" style="background: white;">${socio.respCNPJ}</div>
+                                <div class="detail-value" style="background: white;">${socio.responsavel_cnpj ? 'Sim' : 'Não'}</div>
                             </div>
                         </div>
                         <div class="detail-row">
                             <div class="detail-field">
                                 <span class="detail-label">Participação</span>
-                                <div class="detail-value" style="background: white;">${socio.participacao}%</div>
+                                <div class="detail-value" style="background: white;">${socio.participacao || '0'}%</div>
                             </div>
                             <div class="detail-field">
                                 <span class="detail-label">Profissão</span>
-                                <div class="detail-value" style="background: white;">${sanitizeOutput(socio.profissao)}</div>
+                                <div class="detail-value" style="background: white;">${sanitizeOutput(socio.profissao || '-')}</div>
                             </div>
                         </div>
                         <div class="detail-row">
                             <div class="detail-field">
                                 <span class="detail-label">Estado Civil</span>
-                                <div class="detail-value" style="background: white; text-transform: capitalize;">${sanitizeOutput(socio.estadoCivil)}</div>
+                                <div class="detail-value" style="background: white; text-transform: capitalize;">${sanitizeOutput(socio.estado_civil || '-')}</div>
                             </div>
                             <div class="detail-field">
                                 <span class="detail-label">Naturalidade</span>
-                                <div class="detail-value" style="background: white;">${sanitizeOutput(socio.naturalidade)}</div>
+                                <div class="detail-value" style="background: white;">${sanitizeOutput(socio.naturalidade || '-')}</div>
                             </div>
                         </div>
-                        ${(socio.estadoCivil === 'casado' || socio.estadoCivil === 'uniao_estavel') ? `
+                        ${(socio.estado_civil === 'casado' || socio.estado_civil === 'uniao_estavel') ? `
                         <div class="detail-row full">
                             <div class="detail-field">
                                 <span class="detail-label">Regime de Partilha</span>
-                                <div class="detail-value" style="background: white;">${sanitizeOutput(socio.regimePartilha)}</div>
+                                <div class="detail-value" style="background: white;">${sanitizeOutput(socio.regime_partilha || '-')}</div>
                             </div>
                         </div>` : ''}
                         <div class="detail-row">
                             <div class="detail-field">
                                 <span class="detail-label">E-mail</span>
-                                <div class="detail-value" style="background: white;">${sanitizeOutput(socio.email)}</div>
+                                <div class="detail-value" style="background: white;">${sanitizeOutput(socio.email || '-')}</div>
                             </div>
                             <div class="detail-field">
                                 <span class="detail-label">Celular</span>
-                                <div class="detail-value" style="background: white;">${sanitizeOutput(socio.celular)}</div>
+                                <div class="detail-value" style="background: white;">${sanitizeOutput(socio.celular || '-')}</div>
                             </div>
                         </div>
                         <div class="detail-row full">
                             <div class="detail-field">
                                 <span class="detail-label">Endereço Residencial</span>
-                                <div class="detail-value" style="background: white;">${sanitizeOutput(socio.endereco)} - CEP: ${sanitizeOutput(socio.cep)}</div>
+                                <div class="detail-value" style="background: white;">${sanitizeOutput(socio.endereco || '-')}</div>
+                            </div>
+				<div class="detail-field">
+                                <span class="detail-label">CEP</span>
+                                <div class="detail-value" style="background: white;">${sanitizeOutput(socio.CEP || '-')}</div>
                             </div>
                         </div>
                     </div>
@@ -702,26 +702,54 @@ function closeModal() {
 // ==========================================
 // 4. EDIÇÃO DE FORMULÁRIO
 // ==========================================
+// ===== ABRIR MODAL DE EDIÇÃO =====
 async function editFormCard(formId) {
     try {
         const form = window.allForms.find(f => f.id === formId);
-        if (!form) return showError('Formulário não encontrado');
+        if (!form) return;
 
         const modal = document.getElementById('editModal');
         const modalBody = document.getElementById('editModalBody');
-
-        modalBody.innerHTML = createEditForm(form);
+        
+        // Mostrar loading
+        modalBody.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>Carregando formulário para edição...</p></div>';
         modal.style.display = 'flex';
+
+        let sociosDoBanco = [];
+
+        // Buscar sócios na tabela 'socios' se for registro ou alteração
+        if (form.tipo_formulario === 'registro' || form.tipo_formulario === 'alteracao') {
+            if (supabaseClient) {
+                try {
+                    const { data: socios, error } = await supabaseClient
+                        .from('socios')
+                        .select('*')
+                        .eq('formulario_id', formId)
+                        .order('numero_socio', { ascending: true });
+
+                    if (!error && socios) {
+                        sociosDoBanco = socios;
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Erro ao buscar sócios para edição:', e);
+                }
+            }
+        }
+
+        // Passa os sócios para a função que cria o formulário
+        modalBody.innerHTML = createEditForm(form, sociosDoBanco);
         window.currentFormId = formId;
         window.currentForm = form;
+        window.currentSocios = sociosDoBanco; // Salva os sócios na memória para usar no saveChanges
 
     } catch (error) {
         console.error('❌ Erro ao abrir edição:', error);
-        showError('Erro ao abrir formulário para edição');
+        showError('Erro ao carregar formulário para edição');
+        closeEditModal();
     }
 }
 
-function createEditForm(form) {
+function createEditForm(form, sociosDoBanco = []) {
     const tipo = form.tipo_formulario || 'formulario';
     
     let camposEdicao = `
@@ -744,9 +772,7 @@ function createEditForm(form) {
         </div>
     `;
 
-    // ==========================================
     // 1. EDIÇÃO: REGISTRO DE EMPRESA
-    // ==========================================
     if (tipo === 'registro') {
         camposEdicao += `
             <div class="detail-section">
@@ -780,9 +806,7 @@ function createEditForm(form) {
             </div>
         `;
     } 
-    // ==========================================
     // 2. EDIÇÃO: ALTERAÇÃO DE EMPRESA
-    // ==========================================
     else if (tipo === 'alteracao') {
         camposEdicao += `
             <div class="detail-section">
@@ -849,9 +873,7 @@ function createEditForm(form) {
             </div>
         `;
     } 
-    // ==========================================
     // 3. EDIÇÃO: REGISTRO DE EMPREGADO
-    // ==========================================
     else if (tipo === 'empregado') {
         camposEdicao += `
             <div class="detail-section">
@@ -879,6 +901,80 @@ function createEditForm(form) {
         `;
     }
 
+    // ==========================================
+    // RENDERIZAR SÓCIOS PARA EDIÇÃO
+    // ==========================================
+    if (sociosDoBanco && sociosDoBanco.length > 0) {
+        camposEdicao += `
+            <div class="detail-section">
+                <div class="detail-section-title">👥 Editar Sócios (${sociosDoBanco.length})</div>
+                ${sociosDoBanco.map(socio => `
+                    <div style="background: #f8f9fa; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 15px; margin-bottom: 15px;">
+                        <h4 style="color: var(--primary-color); margin-bottom: 10px;">Sócio #${socio.numero_socio || '?'}</h4>
+                        
+                        <!-- ID Oculto para saber qual sócio atualizar -->
+                        <input type="hidden" id="editSocioId_${socio.id}" value="${socio.id}">
+                        
+                        <div class="detail-row full">
+                            <div class="detail-field">
+                                <label class="detail-label">Nome Completo</label>
+                                <input type="text" id="editSocioNome_${socio.id}" class="search-input" style="padding: var(--spacing-md);" value="${sanitizeOutput(socio.nome || '')}">
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-field">
+                                <label class="detail-label">Administrador?</label>
+                                <select id="editSocioAdmin_${socio.id}" class="filter-select" style="padding: var(--spacing-md);">
+                                    <option value="true" ${socio.administrador ? 'selected' : ''}>Sim</option>
+                                    <option value="false" ${!socio.administrador ? 'selected' : ''}>Não</option>
+                                </select>
+                            </div>
+                            <div class="detail-field">
+                                <label class="detail-label">Responsável CNPJ?</label>
+                                <select id="editSocioRespCNPJ_${socio.id}" class="filter-select" style="padding: var(--spacing-md);">
+                                    <option value="true" ${socio.responsavel_cnpj ? 'selected' : ''}>Sim</option>
+                                    <option value="false" ${!socio.responsavel_cnpj ? 'selected' : ''}>Não</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-field">
+                                <label class="detail-label">Participação (%)</label>
+                                <input type="number" id="editSocioParticipacao_${socio.id}" class="search-input" style="padding: var(--spacing-md);" value="${socio.participacao || 0}" step="0.01">
+                            </div>
+                            <div class="detail-field">
+                                <label class="detail-label">Profissão</label>
+                                <input type="text" id="editSocioProfissao_${socio.id}" class="search-input" style="padding: var(--spacing-md);" value="${sanitizeOutput(socio.profissao || '')}">
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-field">
+                                <label class="detail-label">Estado Civil</label>
+                                <select id="editSocioEstadoCivil_${socio.id}" class="filter-select" style="padding: var(--spacing-md);">
+                                    <option value="solteiro" ${socio.estado_civil === 'solteiro' ? 'selected' : ''}>Solteiro(a)</option>
+                                    <option value="casado" ${socio.estado_civil === 'casado' ? 'selected' : ''}>Casado(a)</option>
+                                    <option value="divorciado" ${socio.estado_civil === 'divorciado' ? 'selected' : ''}>Divorciado(a)</option>
+                                    <option value="viuvo" ${socio.estado_civil === 'viuvo' ? 'selected' : ''}>Viúvo(a)</option>
+                                    <option value="uniao_estavel" ${socio.estado_civil === 'uniao_estavel' ? 'selected' : ''}>União Estável</option>
+                                </select>
+                            </div>
+                            <div class="detail-field">
+                                <label class="detail-label">Celular</label>
+                                <input type="tel" id="editSocioCelular_${socio.id}" class="search-input" style="padding: var(--spacing-md);" value="${sanitizeOutput(socio.celular || '')}">
+                            </div>
+                        </div>
+                        <div class="detail-row full">
+                            <div class="detail-field">
+                                <label class="detail-label">Endereço Residencial</label>
+                                <input type="text" id="editSocioEndereco_${socio.id}" class="search-input" style="padding: var(--spacing-md);" value="${sanitizeOutput(socio.endereco || '')}">
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
     camposEdicao += `
         <div class="detail-section">
             <div class="detail-section-title">Observações</div>
@@ -891,6 +987,163 @@ function createEditForm(form) {
     `;
 
     return camposEdicao;
+}
+
+// ===== GERAR E ENVIAR PDF APÓS EDIÇÃO =====
+
+// ===== GERAR E ENVIAR PDF APÓS EDIÇÃO =====
+async function gerarEEnviarPDFAlterado(formOriginal, dadosAtualizados, sociosAtualizados, responsavel) {
+    try {
+        console.log('📄 Iniciando geração do PDF de alteração...');
+        
+        // 1. Inicializar jsPDF
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            throw new Error('Biblioteca jsPDF não encontrada. Adicione o script no index.html.');
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        let yPosition = 20;
+        const margin = 20;
+        const lineHeight = 7;
+        const pageWidth = doc.internal.pageSize.width;
+
+        // 2. Mesclar dados antigos com os novos
+        const form = { ...formOriginal, ...dadosAtualizados };
+
+        // 3. Cabeçalho do PDF
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.text("FORMULÁRIO ATUALIZADO (EDIÇÃO)", pageWidth / 2, yPosition, { align: "center" });
+        yPosition += 12;
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        const dataAtual = new Date().toLocaleString('pt-BR');
+        doc.text(`Data da Alteração: ${dataAtual}`, margin, yPosition);
+        yPosition += lineHeight;
+        doc.text(`Alterado por: ${responsavel}`, margin, yPosition);
+        yPosition += lineHeight;
+        doc.text(`Status Atual: ${form.status.toUpperCase()}`, margin, yPosition);
+        yPosition += lineHeight * 2;
+
+        // Função auxiliar para imprimir linhas no PDF
+        function addLine(label, value) {
+            if (yPosition > 280) {
+                doc.addPage();
+                yPosition = 20;
+            }
+            doc.setFont("helvetica", "bold");
+            doc.text(`${label}:`, margin, yPosition);
+            doc.setFont("helvetica", "normal");
+            
+            const textLines = doc.splitTextToSize(String(value || '-'), pageWidth - margin - 60);
+            doc.text(textLines, margin + 50, yPosition);
+            yPosition += lineHeight * textLines.length;
+        }
+
+        // 4. Preencher dados
+        if (form.tipo_formulario === 'registro' || form.tipo_formulario === 'alteracao') {
+            addLine("Nome da Empresa", form.nome_empresa || form.nomeEmpresa);
+            if (form.nome_fantasia) addLine("Nome Fantasia", form.nome_fantasia);
+            if (form.capital_social) addLine("Capital Social", `R$ ${form.capital_social}`);
+            if (form.endereco) addLine("Endereço", form.endereco);
+            if (form.cep) addLine("CEP", form.cep);
+            if (form.email_comercial) addLine("E-mail", form.email_comercial);
+            if (form.telefone_comercial) addLine("Telefone", form.telefone_comercial);
+            if (form.atividade_principal) addLine("Atividade Principal", form.atividade_principal);
+            
+            if (form.novo_endereco) addLine("Novo Endereço", form.novo_endereco);
+            if (form.atividade_principal_nova) addLine("Nova Ativ. Principal", form.atividade_principal_nova);
+        } else if (form.tipo_formulario === 'empregado') {
+            addLine("Nome do Empregado", form.nome_completo);
+            addLine("CPF", form.cpf);
+            addLine("Cargo", form.cargo);
+            addLine("Salário", `R$ ${form.salario_contratual}`);
+        }
+
+        if (form.observacoes) {
+            yPosition += lineHeight;
+            addLine("Observações", form.observacoes);
+        }
+
+        // 5. Preencher dados dos Sócios
+        if (sociosAtualizados && sociosAtualizados.length > 0) {
+            yPosition += lineHeight;
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("DADOS DOS SÓCIOS (ATUALIZADOS)", margin, yPosition);
+            yPosition += lineHeight;
+            doc.setFontSize(10);
+
+            sociosAtualizados.forEach((socio, index) => {
+                addLine(`Sócio #${index + 1}`, socio.nome);
+                addLine("  Administrador", socio.administrador ? 'Sim' : 'Não');
+                addLine("  Resp. CNPJ", socio.responsavel_cnpj ? 'Sim' : 'Não');
+                addLine("  Participação", `${socio.participacao}%`);
+                addLine("  Estado Civil", socio.estado_civil);
+            });
+        }
+
+        // 6. Gerar o arquivo PDF (Blob)
+        const pdfBlob = doc.output('blob');
+
+        // 7. Montar o nome do arquivo e o caminho
+        const sanitizarNomeArquivo = (nome) => {
+            if (!nome) return 'documento_sem_nome';
+            return nome
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+                .replace(/[^a-zA-Z0-9]/g, '_')   // Substitui caracteres especiais por underline
+                .replace(/_+/g, '_')             // Remove underlines duplicados
+                .toLowerCase();
+        };
+
+        const nomeBase = form.nome_empresa || form.nome_completo || form.nomeEmpresa || 'empresa';
+        const nomePasta = sanitizarNomeArquivo(nomeBase);
+        
+        // Determinar a pasta raiz baseada no tipo de formulário
+        let tipoPasta = 'Registro';
+        if (form.tipo_formulario === 'alteracao') {
+            tipoPasta = 'Alteracao';
+        } else if (form.tipo_formulario === 'empregado') {
+            tipoPasta = 'Empregado';
+        }
+        
+        // Formatar data para o nome do arquivo (DD-MM-YYYY_HH-MM)
+        const agora = new Date();
+        const dataStr = `${String(agora.getDate()).padStart(2, '0')}-${String(agora.getMonth()+1).padStart(2, '0')}-${agora.getFullYear()}_${String(agora.getHours()).padStart(2, '0')}h${String(agora.getMinutes()).padStart(2, '0')}`;
+        
+        // Nome final do arquivo: Nome da empresa_data_Alterado por Responsavel.pdf
+        const nomeArquivo = `${nomeBase}_${dataStr}_Alterado_por_${responsavel}.pdf`;
+        
+        // Caminho no bucket: {tipo de formulario}/Nome da empresa/formulario/nome_do_arquivo.pdf
+        const caminhoCompleto = `${tipoPasta}/${nomePasta}/formulario/${nomeArquivo}`;
+
+        console.log('📁 Caminho de destino no Storage:', caminhoCompleto);
+
+        // 8. Fazer o upload para o Supabase Storage
+        const { data, error } = await supabaseClient.storage
+            .from('documentos')
+            .upload(caminhoCompleto, pdfBlob, {
+                contentType: 'application/pdf',
+                cacheControl: '3600',
+                upsert: false
+            });
+
+        if (error) {
+            console.error('❌ Erro detalhado do Supabase Storage:', error);
+            throw error;
+        }
+
+        console.log('✅ PDF atualizado salvo com sucesso no Storage!', data);
+        return data;
+        
+    } catch (err) {
+        console.error('❌ Falha crítica ao gerar/enviar PDF:', err);
+        throw err;
+    }
 }
 
 async function saveChanges() {
@@ -948,9 +1201,43 @@ async function saveChanges() {
             if (document.getElementById('editHorarioTrabalho')) updateData.horario_trabalho = document.getElementById('editHorarioTrabalho').value;
         }
 
+        // 1. Atualiza o formulário principal
         const { error: updateError } = await supabaseClient.from(tableName).update(updateData).eq('id', formId);
         if (updateError) throw updateError;
 
+        // 2. Atualiza os sócios e guarda os dados para o PDF
+        let sociosAtualizados = [];
+        if (window.currentSocios && window.currentSocios.length > 0) {
+            for (const socio of window.currentSocios) {
+                const socioId = socio.id;
+                
+                if (document.getElementById(`editSocioNome_${socioId}`)) {
+                    const socioUpdateData = {
+                        nome: document.getElementById(`editSocioNome_${socioId}`).value,
+                        administrador: document.getElementById(`editSocioAdmin_${socioId}`).value === 'true',
+                        responsavel_cnpj: document.getElementById(`editSocioRespCNPJ_${socioId}`).value === 'true',
+                        participacao: parseFloat(document.getElementById(`editSocioParticipacao_${socioId}`).value) || 0,
+                        profissao: document.getElementById(`editSocioProfissao_${socioId}`).value,
+                        estado_civil: document.getElementById(`editSocioEstadoCivil_${socioId}`).value,
+                        celular: document.getElementById(`editSocioCelular_${socioId}`).value,
+                        endereco: document.getElementById(`editSocioEndereco_${socioId}`).value
+                    };
+
+                    sociosAtualizados.push(socioUpdateData);
+
+                    const { error: socioError } = await supabaseClient
+                        .from('socios')
+                        .update(socioUpdateData)
+                        .eq('id', socioId);
+                        
+                    if (socioError) console.error(`Erro ao atualizar sócio ${socioId}:`, socioError);
+                } else {
+                    sociosAtualizados.push(socio); // Mantém o original se não foi editado
+                }
+            }
+        }
+
+        // 3. Registra no histórico
         try {
             await supabaseClient.from('historico_edicoes').insert([{
                 formulario_id: formId,
@@ -962,7 +1249,24 @@ async function saveChanges() {
             }]);
         } catch (e) { console.warn('⚠️ Histórico não registrado'); }
 
-        showSuccess('Formulário atualizado com sucesso!');
+        // 4. GERAR E ENVIAR PDF ATUALIZADO
+        try {
+            // Muda o texto do botão para dar feedback visual
+            const btnSalvar = document.querySelector('#editModal .btn-primary');
+            const textoOriginal = btnSalvar.innerText;
+            btnSalvar.innerText = 'Gerando PDF...';
+            btnSalvar.disabled = true;
+
+            await gerarEEnviarPDFAlterado(form, updateData, sociosAtualizados, responsavel);
+            
+            btnSalvar.innerText = textoOriginal;
+            btnSalvar.disabled = false;
+        } catch (pdfError) {
+            console.error('Erro ao gerar/enviar PDF:', pdfError);
+            // Não interrompe o fluxo se o PDF falhar, pois os dados já foram salvos
+        }
+
+        showSuccess('Formulário atualizado e PDF gerado com sucesso!');
         closeEditModal();
         closeModal();
         loadForms();

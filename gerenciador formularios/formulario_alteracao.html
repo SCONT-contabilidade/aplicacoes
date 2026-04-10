@@ -1039,36 +1039,70 @@ let isSubmitting = false; // CORREÇÃO: FLAG PARA PREVENIR DUPLICAÇÃO
             return true;
         }
 
-        // ===== SUBMISSÃO DO FORMULÁRIO =====
+       function getSociosCount() {
+    let count = 0;
+    for (let i = 1; i <= 10; i++) {
+        const nomeField = form.elements['socio' + i + 'Nome'];
+        if (!nomeField || !nomeField.value.trim()) break;
+        count++;
+    }
+    return count;
+}
+
+function validateSocios() {
+    const sociosCount = getSociosCount();
+    for (let i = 1; i <= sociosCount; i++) {
+        const nome = form.elements['socio' + i + 'Nome']?.value.trim();
+        const cpf = form.elements['socio' + i + 'CPF']?.value.trim();
+        const participacao = form.elements['socio' + i + 'Participacao']?.value;
+        
+        if (!nome || !cpf || !participacao || parseFloat(participacao) <= 0 || parseFloat(participacao) > 100) {
+            alert(`Erro no Sócio ${i}: Nome, CPF e Participação (%) obrigatórios (0-100%).`);
+            return false;
+        }
+        if (!/^\d{11}$/.test(cpf.replace(/\D/g, ''))) {
+            alert(`CPF inválido no Sócio ${i}.`);
+            return false;
+        }
+    }
+    let totalParticipacao = 0;
+    for (let i = 1; i <= sociosCount; i++) {
+        totalParticipacao += parseFloat(form.elements['socio' + i + 'Participacao']?.value || 0);
+    }
+    if (Math.abs(totalParticipacao - 100) > 0.01) {
+        alert(`Soma participações: 100% (atual: ${totalParticipacao.toFixed(2)}%).`);
+        return false;
+    }
+    return true;
+}
      // ===== SUBMISSÃO DO FORMULÁRIO =====
 async function handleFormSubmit(e) {
     e.preventDefault();
-
-    // CORREÇÃO #1: PREVENIR MÚLTIPLOS CLIQUES
     if (isSubmitting) {
-        console.warn('⚠️ Formulário já está sendo enviado. Aguarde...');
+        console.warn('⚠️ Submissão em andamento...');
         return;
     }
 
-    if (!validateForm()) {
-        return;
-    }
+    if (!validateForm()) return;
+    if (!validateSocios()) return;  // Nova validação
 
-    // ATIVAR FLAG E DESABILITAR BOTÃO
+    const submitBtn = document.querySelector('.btn-primary');
+    const originalText = submitBtn.innerHTML;
     isSubmitting = true;
     submitBtn.disabled = true;
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '⏳ Enviando...';
+    submitBtn.innerHTML = '⏳ Processando...';
 
     try {
-        console.log('📝 Coletando dados do formulário...');
-        collectFormData();
+        // 1. PDF (manter igual)
         console.log('📄 Gerando PDF...');
         const pdfBlob = await gerarPDFFormulario();
-        console.log('📤 Fazendo upload do PDF...');
+
+        // 2. Uploads (adaptado para gerarNomeDocumentoSocio)
+        console.log('📤 Upload PDF...');
         const nomeFormulario = gerarNomeFormulario(formData.nomeEmpresa);
         await uploadArquivo(pdfBlob, 'formulario', nomeFormulario);
-        console.log('📤 Fazendo upload dos documentos dos sócios...');
+        console.log('📤 Upload docs sócios...');
+        const sociosCount = getSociosCount();
         for (let i = 1; i <= sociosCount; i++) {
             const nomeField = form.elements['socio' + i + 'Nome'];
             if (nomeField && nomeField.value && uploadedDocuments['socio' + i]) {
@@ -1077,9 +1111,11 @@ async function handleFormSubmit(e) {
                 await uploadArquivo(arquivo, 'documento', nomeDoc);
             }
         }
-        console.log('💾 Salvando dados no banco de dados...');
+
+        // 3. Salvar formulario (manter campos 'alteracao')
+        console.log('💾 Salvando formulario...');
         if (!supabaseClient) {
-            console.warn('⚠️ Supabase não configurado. Simulando salvamento...');
+            console.warn('⚠️ Supabase simulado.');
             submissionId = 'SIM-' + Date.now();
             showModal();
             return;
@@ -1114,17 +1150,54 @@ async function handleFormSubmit(e) {
                 status: 'recebido'
             }])
             .select();
-        if (formularioError) {
-            console.error('❌ Erro ao salvar formulário:', formularioError);
-            throw formularioError;
-        }
+        if (formularioError) throw formularioError;
         submissionId = formulario[0].id;
-        console.log('✅ Formulário salvo com ID:', submissionId);
-        showModal();
+        console.log('✅ Formulario ID:', submissionId);
+
+        // 4. NOVO: Salvar sócios (try isolado)
+        try {
+            console.log('💾 Salvando sócios...');
+            const sociosData = [];
+            for (let i = 1; i <= sociosCount; i++) {
+                const nomeField = form.elements['socio' + i + 'Nome'];
+                if (!nomeField?.value.trim()) continue;
+
+                sociosData.push({
+                    formulario_id: submissionId,
+                    nome: form.elements['socio' + i + 'Nome'].value.trim(),
+                    cpf: form.elements['socio' + i + 'CPF'].value.trim(),
+                    rg: form.elements['socio' + i + 'RG']?.value?.trim() || null,
+                    cnh: form.elements['socio' + i + 'CNH']?.value?.trim() || null,
+                    endereco_residencial: form.elements['socio' + i + 'EnderecoResidencial']?.value?.trim() || null,
+                    cep: form.elements['socio' + i + 'CEP']?.value?.trim() || null,
+                    email: form.elements['socio' + i + 'Email']?.value?.trim() || null,
+                    celular: form.elements['socio' + i + 'Celular']?.value?.trim() || null,
+                    estado_civil: form.elements['socio' + i + 'EstadoCivil']?.value || null,
+                    regime_partilha: form.elements['socio' + i + 'RegimePartilha']?.value?.trim() || null,
+                    naturalidade: form.elements['socio' + i + 'Naturalidade']?.value?.trim() || null,
+                    profissao: form.elements['socio' + i + 'Profissao']?.value?.trim() || null,
+                    participacao: parseFloat(form.elements['socio' + i + 'Participacao'].value),
+                    is_admin: form.elements['socio' + i + 'Admin']?.value === 'sim',
+                    responsavel_cnpj: !!form.elements['socio' + i + 'CNPJ']?.checked,
+                    created_at: new Date().toISOString()
+                });
+            }
+            if (sociosData.length > 0) {
+                const { error: sociosError } = await supabaseClient.from('socios').insert(sociosData).select();
+                if (sociosError) throw new Error(`Sócios: ${sociosError.message}`);
+                console.log(`✅ ${sociosData.length} sócios salvos.`);
+            }
+        } catch (sociosError) {
+            console.error('❌ Sócios (fluxo continua):', sociosError);
+            alert('Empresa salva, sócios com erro. Verifique console.');
+        }
+
+        showModal();  // Sucesso
+
     } catch (error) {
-        console.error('❌ Erro ao salvar formulário:', error);
-        alert('Erro ao salvar formulário: ' + error.message);
-        // CORREÇÃO #2: REABILITAR BOTÃO EM CASO DE ERRO
+        console.error('❌ Erro:', error);
+        alert('Erro: ' + error.message);
+    } finally {
         isSubmitting = false;
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
